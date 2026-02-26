@@ -1,0 +1,7 @@
+{
+  "name": "GYUIFARMA",
+  "description": "SaaS de Gestão de Estoque e Vendas para Distribuidores de Medicamentos (Atacado). Sistema completo com controle de lotes, validades e relatórios em FCFA.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

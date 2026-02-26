@@ -1,0 +1,324 @@
+
+import React, { useState } from 'react';
+import { Search, Plus, Users, X, Phone, ShieldCheck, MapPin, CheckCircle2 } from 'lucide-react';
+import { Client } from '../types';
+import { formatCurrency } from '../constants';
+
+interface ClientManagementProps {
+  clients: Client[];
+  onAddClient: (client: Client) => void;
+}
+
+const ClientManagement: React.FC<ClientManagementProps> = ({ clients, onAddClient }) => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  const [formData, setFormData] = useState({
+    name: '',
+    nif: '',
+    technicalResponsible: '',
+    type: 'Farmácia' as const,
+    contact: '',
+    address: '',
+    region: 'Bissau',
+    creditLimit: '',
+    paymentTerm: '30'
+  });
+
+  const filteredClients = clients.filter(c => 
+    c.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    c.contact.includes(searchTerm) ||
+    c.nif.includes(searchTerm)
+  );
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const newClient: Client = {
+      id: `c-${Date.now()}`,
+      name: formData.name,
+      nif: formData.nif,
+      technicalResponsible: formData.technicalResponsible,
+      type: formData.type,
+      contact: formData.contact,
+      address: formData.address,
+      region: formData.region,
+      creditLimit: parseFloat(formData.creditLimit) || 0,
+      balance: 0,
+      paymentTerm: parseInt(formData.paymentTerm) || 0
+    };
+    onAddClient(newClient);
+    setShowSuccess(true);
+    setTimeout(() => {
+      setShowSuccess(false);
+      setIsModalOpen(false);
+    }, 2000);
+    setFormData({ 
+      name: '', 
+      nif: '', 
+      technicalResponsible: '', 
+      type: 'Farmácia', 
+      contact: '', 
+      address: '', 
+      region: 'Bissau',
+      creditLimit: '', 
+      paymentTerm: '30' 
+    });
+  };
+
+  return (
+    <div className="space-y-6 animate-fadeIn">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-800">Cadastro de Clientes</h2>
+          <p className="text-slate-500">Gerencie farmácias, hospitais e parcerias.</p>
+        </div>
+        <button 
+          onClick={() => setIsModalOpen(true)}
+          className="flex items-center gap-2 bg-emerald-600 text-white px-6 py-3 rounded-xl shadow-lg hover:bg-emerald-700 transition-all font-bold"
+        >
+          <Plus size={20} />
+          Novo Cliente
+        </button>
+      </div>
+
+      <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-wrap gap-4 items-center">
+        <div className="relative flex-1 min-w-[280px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+          <input 
+            type="text" 
+            placeholder="Pesquisar por nome ou contacto..." 
+            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+        <table className="w-full text-left text-sm">
+          <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider">
+            <tr>
+              <th className="px-6 py-4">Nome / NIF</th>
+              <th className="px-6 py-4">Responsável Técnico</th>
+              <th className="px-6 py-4">Tipo</th>
+              <th className="px-6 py-4">Endereço / Contacto</th>
+              <th className="px-6 py-4">Limite / Prazo</th>
+              <th className="px-6 py-4">Dívida Atual</th>
+              <th className="px-6 py-4">Status</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {filteredClients.map(client => (
+              <tr key={client.id} className="hover:bg-slate-50/50 transition-colors">
+                <td className="px-6 py-4">
+                  <p className="font-bold text-slate-800">{client.name}</p>
+                  <p className="text-[10px] text-slate-400 font-mono">NIF: {client.nif}</p>
+                </td>
+                <td className="px-6 py-4 text-slate-600 font-medium">{client.technicalResponsible}</td>
+                <td className="px-6 py-4">
+                  <span className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase ${
+                    client.type === 'Farmácia' ? 'bg-blue-100 text-blue-600' : 
+                    client.type === 'Hospital' ? 'bg-purple-100 text-purple-600' : 'bg-amber-100 text-amber-600'
+                  }`}>
+                    {client.type}
+                  </span>
+                </td>
+                <td className="px-6 py-4">
+                  <p className="text-slate-700">{client.address}</p>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase">{client.region}</p>
+                  <p className="text-xs text-slate-500">{client.contact}</p>
+                </td>
+                <td className="px-6 py-4">
+                  <p className="font-medium text-slate-800">{formatCurrency(client.creditLimit)}</p>
+                  <p className="text-[10px] text-slate-400 uppercase font-black">{client.paymentTerm} dias</p>
+                </td>
+                <td className="px-6 py-4 font-bold text-red-500">{formatCurrency(client.balance)}</td>
+                <td className="px-6 py-4">
+                  <div className="flex items-center gap-1 text-emerald-600">
+                    <ShieldCheck size={14} />
+                    <span className="text-[10px] font-bold">ATIVO</span>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {filteredClients.length === 0 && (
+          <div className="p-12 text-center text-slate-400">Nenhum cliente encontrado.</div>
+        )}
+      </div>
+
+      {/* Modal: Cadastro de Cliente */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fadeIn">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-slideUp">
+            {showSuccess ? (
+              <div className="p-12 text-center space-y-4 animate-fadeIn">
+                <div className="bg-emerald-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto text-emerald-600 mb-6">
+                  <CheckCircle2 size={48} />
+                </div>
+                <h3 className="text-2xl font-black text-slate-900 uppercase">Cliente Cadastrado!</h3>
+                <p className="text-slate-500">Os dados foram salvos com sucesso no sistema.</p>
+              </div>
+            ) : (
+              <>
+                <div className="bg-slate-900 p-6 flex justify-between items-center text-white">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-emerald-500 p-2 rounded-xl">
+                      <Users size={20} />
+                    </div>
+                    <h3 className="text-lg font-bold">Novo Cadastro de Cliente</h3>
+                  </div>
+                  <button onClick={() => setIsModalOpen(false)} className="hover:bg-slate-800 p-2 rounded-full text-slate-400 hover:text-white">
+                    <X size={20} />
+                  </button>
+                </div>
+
+                <form onSubmit={handleSubmit} className="p-8 space-y-5">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nome da Instituição</label>
+                      <input 
+                        required 
+                        type="text" 
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none" 
+                        placeholder="Ex: Farmácia Popular"
+                        value={formData.name}
+                        onChange={e => setFormData({...formData, name: e.target.value})}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">NIF (Obrigatório)</label>
+                      <input 
+                        required 
+                        type="text" 
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none" 
+                        placeholder="500..."
+                        value={formData.nif}
+                        onChange={e => setFormData({...formData, nif: e.target.value})}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Responsável Técnico (Farmacêutico)</label>
+                    <input 
+                      required 
+                      type="text" 
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none" 
+                      placeholder="Nome do Farmacêutico"
+                      value={formData.technicalResponsible}
+                      onChange={e => setFormData({...formData, technicalResponsible: e.target.value})}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tipo</label>
+                      <select 
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none font-bold"
+                        value={formData.type}
+                        onChange={e => setFormData({...formData, type: e.target.value as any})}
+                      >
+                        <option value="Farmácia">Farmácia</option>
+                        <option value="Hospital">Hospital</option>
+                        <option value="ONG">ONG</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Contacto Telefónico</label>
+                      <input 
+                        required 
+                        type="text" 
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none" 
+                        placeholder="+245 ..."
+                        value={formData.contact}
+                        onChange={e => setFormData({...formData, contact: e.target.value})}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Endereço Completo</label>
+                      <input 
+                        required 
+                        type="text" 
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none" 
+                        placeholder="Bairro, Rua, Cidade"
+                        value={formData.address}
+                        onChange={e => setFormData({...formData, address: e.target.value})}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Região / Província</label>
+                      <select 
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none font-bold"
+                        value={formData.region}
+                        onChange={e => setFormData({...formData, region: e.target.value})}
+                      >
+                        <option value="Bissau">Bissau (SAB)</option>
+                        <option value="Bafatá">Bafatá</option>
+                        <option value="Gabu">Gabu</option>
+                        <option value="Oio">Oio (Farim)</option>
+                        <option value="Biombo">Biombo (Quinhámel)</option>
+                        <option value="Quinara">Quinara (Buba)</option>
+                        <option value="Tombali">Tombali (Catió)</option>
+                        <option value="Cacheu">Cacheu</option>
+                        <option value="Bolama">Bolama/Bijagós</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Limite de Crédito (FCFA)</label>
+                      <input 
+                        required 
+                        type="number" 
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none font-bold text-emerald-600" 
+                        placeholder="500000"
+                        value={formData.creditLimit}
+                        onChange={e => setFormData({...formData, creditLimit: e.target.value})}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Prazo Pagamento (Dias)</label>
+                      <input 
+                        required 
+                        type="number" 
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none font-bold" 
+                        placeholder="30"
+                        value={formData.paymentTerm}
+                        onChange={e => setFormData({...formData, paymentTerm: e.target.value})}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pt-6 flex gap-3">
+                    <button 
+                      type="button" 
+                      onClick={() => setIsModalOpen(false)} 
+                      className="flex-1 py-4 font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-2xl transition-all"
+                    >
+                      Cancelar
+                    </button>
+                    <button 
+                      type="submit" 
+                      className="flex-1 py-4 font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-2xl transition-all shadow-xl shadow-emerald-200"
+                    >
+                      Salvar Cliente
+                    </button>
+                  </div>
+                </form>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default ClientManagement;
