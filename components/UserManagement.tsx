@@ -1,27 +1,68 @@
 
 import React, { useState } from 'react';
-import { Search, Plus, UserPlus, X, Mail, Shield, CheckCircle2, UserCheck, MoreVertical, Lock } from 'lucide-react';
-import { User, UserRole } from '../types';
+import { Search, Plus, X, Shield, CheckCircle2, ChevronRight, Save, Trash2, Check } from 'lucide-react';
+import { User, UserRole, UserPermissions } from '../types';
+import { DEFAULT_PERMISSIONS } from '../constants';
 
 interface UserManagementProps {
   users: User[];
   onAddUser: (user: User) => void;
   onUpdateUser: (user: User) => void;
+  onDeleteUser?: (userId: string) => void;
 }
 
-const UserManagement: React.FC<UserManagementProps> = ({ users, onAddUser, onUpdateUser }) => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+type UserTab = 'details' | 'permissions';
+
+const UserManagement: React.FC<UserManagementProps> = ({ users, onAddUser, onUpdateUser, onDeleteUser }) => {
+  const [activeTab, setActiveTab] = useState<UserTab>('details');
+  const [selectedUser, setSelectedUser] = useState<User | null>(users[0] || null);
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [successToast, setSuccessToast] = useState<{ show: boolean; message: string } | null>(null);
 
   const [formData, setFormData] = useState({
     name: '',
     employeeName: '',
     email: '',
     password: '',
-    role: UserRole.SELLER
+    confirmPassword: '',
+    role: UserRole.SELLER,
+    imageUrl: '',
+    permissions: DEFAULT_PERMISSIONS
   });
+
+  React.useEffect(() => {
+    if (selectedUser) {
+      setFormData({
+        name: selectedUser.name,
+        employeeName: selectedUser.employeeName,
+        email: selectedUser.email,
+        password: '',
+        confirmPassword: '',
+        role: selectedUser.role,
+        imageUrl: '', // Placeholder
+        permissions: selectedUser.permissions || DEFAULT_PERMISSIONS
+      });
+    } else {
+      setFormData({
+        name: '',
+        employeeName: '',
+        email: '',
+        password: '',
+        confirmPassword: '',
+        role: UserRole.SELLER,
+        imageUrl: '',
+        permissions: DEFAULT_PERMISSIONS
+      });
+    }
+  }, [selectedUser]);
+
+  React.useEffect(() => {
+    if (successToast?.show) {
+      const timer = setTimeout(() => setSuccessToast(null), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [successToast]);
 
   const filteredUsers = users.filter(u => 
     u.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -29,297 +70,395 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, onAddUser, onUpd
     u.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingUser) {
+    if (formData.password !== formData.confirmPassword) {
+      alert('As senhas não coincidem!');
+      return;
+    }
+
+    if (selectedUser) {
       const updatedUser: User = {
-        ...editingUser,
+        ...selectedUser,
         name: formData.name,
         employeeName: formData.employeeName,
         email: formData.email,
-        role: formData.role
+        role: formData.role,
+        permissions: formData.permissions
       };
       onUpdateUser(updatedUser);
+      setSuccessToast({ show: true, message: 'Usuário atualizado com sucesso!' });
     } else {
       const newUser: User = {
         id: `u-${Date.now()}`,
         name: formData.name,
         employeeName: formData.employeeName,
         email: formData.email,
-        role: formData.role
+        role: formData.role,
+        permissions: formData.permissions
       };
       onAddUser(newUser);
+      setSelectedUser(newUser);
+      setSuccessToast({ show: true, message: 'Novo usuário criado!' });
     }
-    setShowSuccess(true);
-    setTimeout(() => {
-      setShowSuccess(false);
-      setIsModalOpen(false);
-      setEditingUser(null);
-    }, 2000);
-    setFormData({ name: '', employeeName: '', email: '', password: '', role: UserRole.SELLER });
   };
 
-  const handleEditClick = (user: User) => {
-    setEditingUser(user);
-    setFormData({
-      name: user.name,
-      employeeName: user.employeeName || '',
-      email: user.email,
-      password: '', // Don't show password
-      role: user.role
-    });
-    setIsModalOpen(true);
+  const handleNew = () => {
+    setSelectedUser(null);
+    setActiveTab('details');
   };
 
-  const handleNewUserClick = () => {
-    setEditingUser(null);
-    setFormData({ name: '', employeeName: '', email: '', password: '', role: UserRole.SELLER });
-    setIsModalOpen(true);
+  const handleDelete = () => {
+    if (selectedUser && onDeleteUser) {
+      if (window.confirm(`Tem certeza que deseja excluir o usuário ${selectedUser.employeeName}?`)) {
+        onDeleteUser(selectedUser.id);
+        setSelectedUser(users[0] || null);
+        setSuccessToast({ show: true, message: 'Usuário excluído com sucesso!' });
+      }
+    }
   };
+
+  const handleImageUpload = () => {
+    const url = window.prompt('Insira a URL da foto do usuário:');
+    if (url) {
+      setFormData({ ...formData, imageUrl: url });
+    }
+  };
+
+  const handlePermissionChange = (key: keyof UserPermissions) => {
+    setFormData(prev => ({
+      ...prev,
+      permissions: {
+        ...prev.permissions,
+        [key]: !prev.permissions[key]
+      }
+    }));
+  };
+
+  const permissionGroups = [
+    {
+      title: 'CONFIGURAÇÕES DO SISTEMA',
+      permissions: [
+        { key: 'systemSettings', label: 'Menu de Configurações' }
+      ]
+    },
+    {
+      title: 'CADASTROS',
+      permissions: [
+        { key: 'registerUsers', label: 'Usuários / Funcionários' },
+        { key: 'registerClients', label: 'Clientes' },
+        { key: 'registerSuppliers', label: 'Fornecedores' },
+        { key: 'registerProducts', label: 'Produtos' },
+        { key: 'registerBankAccounts', label: 'Contas Bancárias' },
+        { key: 'registerCardMachines', label: 'Máquinas de Cartão' }
+      ]
+    },
+    {
+      title: 'CONTROLE DE ESTOQUE',
+      permissions: [
+        { key: 'stockEntry', label: 'Entrada de Estoque' }
+      ]
+    },
+    {
+      title: 'MENU FINANCEIRO',
+      permissions: [
+        { key: 'cashClosing', label: 'Fechamento de Caixa' },
+        { key: 'receiptsCompensations', label: 'Recebimentos / Compensações' },
+        { key: 'registerExpenses', label: 'Cadastrar Despesas' },
+        { key: 'payExpenses', label: 'Pagar Despesas' },
+        { key: 'registerSangriaSuprimento', label: 'Registrar Sangria / Suprimento' },
+        { key: 'bankMovements', label: 'Movimentações Bancárias' },
+        { key: 'accountTransfers', label: 'Transferência entre Contas' }
+      ]
+    },
+    {
+      title: 'MENU VENDAS / FERRAMENTAS',
+      permissions: [
+        { key: 'sales', label: 'Vendas' },
+        { key: 'systemTools', label: 'Ferramentas do Sistema' }
+      ]
+    },
+    {
+      title: 'RELATÓRIOS',
+      permissions: [
+        { key: 'reportsRegistration', label: 'Relatórios Cadastrais' },
+        { key: 'reportsFinancial', label: 'Relatórios Financeiros' },
+        { key: 'reportsManagement', label: 'Relatórios Gerenciais' }
+      ]
+    }
+  ];
 
   return (
-    <div className="space-y-6 animate-fadeIn">
-      {/* Header com Botão Proeminente ao lado do título */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-8">
-          <div>
-            <h2 className="text-3xl font-extrabold text-slate-800 tracking-tight">Controle de Acessos</h2>
-            <p className="text-slate-500 font-medium">Equipa e permissões de segurança.</p>
+    <div className="min-h-screen bg-[#F3F4F6] p-4 md:p-8 animate-fadeIn">
+      <div className="max-w-6xl mx-auto mb-6">
+        {/* Header */}
+        <div className="bg-[#C05A5A] text-white py-2 px-6 rounded-t-xl flex justify-between items-center shadow-lg">
+          <h1 className="text-sm font-bold uppercase tracking-widest">Usuários</h1>
+          <div className="flex gap-1">
+            <div className="w-3 h-3 rounded-full bg-red-400"></div>
+            <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
+            <div className="w-3 h-3 rounded-full bg-green-400"></div>
           </div>
-          
-          <button 
-            onClick={handleNewUserClick}
-            className="flex items-center justify-center gap-2 bg-blue-600 text-white px-8 py-4 rounded-2xl shadow-xl shadow-blue-200 hover:bg-blue-700 hover:-translate-y-0.5 transition-all duration-200 font-black text-sm uppercase tracking-widest group"
-          >
-            <UserPlus size={20} className="group-hover:scale-110 transition-transform" />
-            Novo Usuário
-          </button>
         </div>
-      </div>
 
-      <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-wrap gap-4 items-center">
-        <div className="relative flex-1 min-w-[280px]">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-          <input 
-            type="text" 
-            placeholder="Pesquisar por nome ou email..." 
-            className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-medium transition-all"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+        {/* Tabs */}
+        <div className="bg-white border-x border-slate-200 flex overflow-x-auto">
+          {[
+            { id: 'details', label: 'Dados Gerais' },
+            { id: 'permissions', label: 'Permissões de Acesso' },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as UserTab)}
+              className={`px-6 py-3 text-[10px] font-bold uppercase tracking-wider whitespace-nowrap border-r border-slate-100 transition-all ${
+                activeTab === tab.id 
+                  ? 'bg-white text-slate-900 border-b-2 border-b-[#C05A5A]' 
+                  : 'bg-slate-50 text-slate-400 hover:bg-slate-100'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredUsers.map(user => (
-          <div key={user.id} className="bg-white p-7 rounded-3xl shadow-sm border border-slate-100 hover:border-blue-200 hover:shadow-md transition-all group relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-5">
-              <button className="text-slate-300 hover:text-slate-600 transition-colors">
-                <MoreVertical size={20} />
-              </button>
-            </div>
-            
-            <div className="flex items-center gap-5 mb-6">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-100 font-black text-xl">
-                {user.name.substring(0, 2).toUpperCase()}
-              </div>
-              <div className="overflow-hidden">
-                <h3 className="font-bold text-slate-800 truncate text-lg">{user.employeeName || user.name}</h3>
-                <div className="flex items-center gap-1.5 text-slate-400 text-xs font-medium">
-                  <Mail size={12} />
-                  <span className="truncate">{user.email}</span>
+        {/* Main Content */}
+        <div className="bg-white border border-slate-200 rounded-b-xl shadow-xl p-8 min-h-[500px]">
+          {activeTab === 'details' && (
+            <form onSubmit={handleSave} className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+              <div className="lg:col-span-8 space-y-6">
+                <div className="grid grid-cols-12 gap-4 items-center">
+                  <label className="col-span-4 text-[11px] font-bold text-slate-500 uppercase text-right pr-4">Nome Completo do Usuário:</label>
+                  <input 
+                    required
+                    type="text" 
+                    className="col-span-8 px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-400 outline-none text-sm font-medium"
+                    placeholder="Digite o nome completo do usuário."
+                    value={formData.employeeName}
+                    onChange={e => setFormData({...formData, employeeName: e.target.value})}
+                  />
+                </div>
+
+                <div className="grid grid-cols-12 gap-4 items-center">
+                  <label className="col-span-4 text-[11px] font-bold text-slate-500 uppercase text-right pr-4">Cargo na Empresa:</label>
+                  <select 
+                    className="col-span-8 px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-400 outline-none text-sm font-medium appearance-none"
+                    value={formData.role}
+                    onChange={e => setFormData({...formData, role: e.target.value as UserRole})}
+                  >
+                    {Object.values(UserRole).map(role => <option key={role} value={role}>{role}</option>)}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-12 gap-4 items-center">
+                  <label className="col-span-4 text-[11px] font-bold text-slate-500 uppercase text-right pr-4">Login:</label>
+                  <input 
+                    required
+                    type="text" 
+                    className="col-span-8 px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-400 outline-none text-sm font-medium"
+                    placeholder="Informe o login para acesso ao sistema"
+                    value={formData.name}
+                    onChange={e => setFormData({...formData, name: e.target.value})}
+                  />
+                </div>
+
+                <div className="grid grid-cols-12 gap-4 items-center">
+                  <label className="col-span-4 text-[11px] font-bold text-slate-500 uppercase text-right pr-4">Senha:</label>
+                  <input 
+                    type="password" 
+                    className="col-span-8 px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-400 outline-none text-sm font-medium"
+                    placeholder="********************"
+                    value={formData.password}
+                    onChange={e => setFormData({...formData, password: e.target.value})}
+                  />
+                </div>
+
+                <div className="grid grid-cols-12 gap-4 items-center">
+                  <label className="col-span-4 text-[11px] font-bold text-slate-500 uppercase text-right pr-4">Confirme a Senha:</label>
+                  <input 
+                    type="password" 
+                    className="col-span-8 px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-400 outline-none text-sm font-medium"
+                    placeholder="********************"
+                    value={formData.confirmPassword}
+                    onChange={e => setFormData({...formData, confirmPassword: e.target.value})}
+                  />
                 </div>
               </div>
-            </div>
 
-            <div className="space-y-4">
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-slate-400 font-bold uppercase tracking-widest">Nível de Acesso</span>
-                <span className={`px-3 py-1 rounded-full font-black uppercase text-[9px] tracking-tighter ${
-                  user.role === UserRole.ADMIN ? 'bg-red-100 text-red-600' : 
-                  user.role === UserRole.STOCK_MANAGER ? 'bg-emerald-100 text-emerald-600' : 
-                  'bg-blue-100 text-blue-600'
-                }`}>
-                  {user.role}
-                </span>
-              </div>
-              
-              <div className="pt-4 border-t border-slate-50 flex items-center justify-between">
-                <div className="flex items-center gap-2 text-emerald-600 text-[10px] font-black uppercase tracking-widest">
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
-                  Acesso Ativo
+              <div className="lg:col-span-4 flex flex-col items-center justify-center space-y-4">
+                <div className="w-full aspect-square max-w-[250px] bg-slate-100 rounded-3xl border-4 border-slate-200 flex flex-col items-center justify-center text-slate-300 relative overflow-hidden group">
+                  {formData.imageUrl ? (
+                    <img src={formData.imageUrl} alt="Usuário" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  ) : (
+                    <div className="flex flex-col items-center opacity-20">
+                      <div className="w-32 h-32 rounded-full bg-slate-400 mb-4"></div>
+                      <p className="text-xs font-black uppercase tracking-widest text-center">Sem Foto</p>
+                    </div>
+                  )}
                 </div>
                 <button 
-                  onClick={() => handleEditClick(user)}
-                  className="text-[10px] font-black text-blue-600 hover:text-blue-800 tracking-widest uppercase"
+                  type="button" 
+                  onClick={handleImageUpload}
+                  className="bg-amber-500 text-white px-8 py-2 rounded-full font-black uppercase tracking-widest text-[10px] shadow-lg hover:bg-amber-600 transition-all"
                 >
-                  Editar Perfil
+                  Selecione a Foto
+                </button>
+              </div>
+            </form>
+          )}
+
+          {activeTab === 'permissions' && (
+            <div className="space-y-12">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {permissionGroups.map((group, groupIdx) => (
+                  <div key={groupIdx} className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <div className="h-[1px] flex-1 bg-slate-200"></div>
+                      <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">{group.title}</h3>
+                      <div className="h-[1px] flex-1 bg-slate-200"></div>
+                    </div>
+                    <div className="bg-slate-50/50 rounded-2xl border border-slate-100 p-4 space-y-2">
+                      {group.permissions.map((perm) => (
+                        <button
+                          key={perm.key}
+                          type="button"
+                          onClick={() => handlePermissionChange(perm.key as keyof UserPermissions)}
+                          className="w-full flex items-center gap-3 p-2 hover:bg-white rounded-xl transition-all group"
+                        >
+                          <div className={`w-6 h-6 rounded-lg flex items-center justify-center transition-all ${
+                            formData.permissions[perm.key as keyof UserPermissions] 
+                              ? 'bg-amber-500 text-white shadow-lg shadow-amber-200' 
+                              : 'bg-white border border-slate-200 text-transparent'
+                          }`}>
+                            <Check size={14} strokeWidth={4} />
+                          </div>
+                          <span className={`text-xs font-bold transition-colors ${
+                            formData.permissions[perm.key as keyof UserPermissions] ? 'text-slate-900' : 'text-slate-400'
+                          }`}>
+                            {perm.label}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="flex justify-end">
+                <button 
+                  type="button"
+                  onClick={handleSave}
+                  className="flex items-center gap-4 bg-amber-500 text-white px-16 py-5 rounded-full shadow-2xl hover:bg-amber-600 transition-all font-black text-sm uppercase tracking-widest group"
+                >
+                  <div className="bg-white/20 p-2 rounded-xl group-hover:scale-110 transition-transform">
+                    <Save size={24} />
+                  </div>
+                  Salvar
                 </button>
               </div>
             </div>
+          )}
+        </div>
+
+        {/* Bottom Action Bar */}
+        <div className="bg-[#F9FAFB] border-x border-b border-slate-200 rounded-b-xl p-6 flex flex-wrap gap-4 items-center justify-between shadow-inner">
+          <div className="flex gap-4">
+            <button 
+              onClick={handleNew}
+              className="flex items-center gap-3 bg-amber-500 text-white px-8 py-3 rounded-full shadow-lg hover:bg-amber-600 transition-all font-black text-xs uppercase tracking-widest"
+            >
+              <Plus size={18} />
+              Novo
+            </button>
+            <button 
+              onClick={() => setIsSearchModalOpen(true)}
+              className="flex items-center gap-3 bg-amber-500 text-white px-8 py-3 rounded-full shadow-lg hover:bg-amber-600 transition-all font-black text-xs uppercase tracking-widest"
+            >
+              <Search size={18} />
+              Localizar
+            </button>
           </div>
-        ))}
+
+          <div className="flex gap-4">
+            <button 
+              onClick={handleSave}
+              className="flex items-center gap-3 bg-amber-500 text-white px-12 py-3 rounded-full shadow-lg hover:bg-amber-600 transition-all font-black text-xs uppercase tracking-widest"
+            >
+              <Save size={18} />
+              Salvar
+            </button>
+            <button 
+              onClick={handleDelete}
+              disabled={!selectedUser}
+              className="flex items-center gap-3 bg-slate-300 text-slate-500 px-8 py-3 rounded-full shadow-lg hover:bg-red-500 hover:text-white transition-all font-black text-xs uppercase tracking-widest disabled:opacity-50 disabled:hover:bg-slate-300 disabled:hover:text-slate-500"
+            >
+              <Trash2 size={18} />
+              Excluir
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* Modal: Cadastro de Usuário */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 animate-fadeIn">
-          <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-lg overflow-hidden animate-slideUp">
-            {showSuccess ? (
-              <div className="p-16 text-center space-y-6 animate-fadeIn">
-                <div className="bg-blue-100 w-24 h-24 rounded-full flex items-center justify-center mx-auto text-blue-600 mb-4 shadow-inner">
-                  <CheckCircle2 size={56} />
-                </div>
-                <h3 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Utilizador Criado!</h3>
-                <p className="text-slate-500 font-medium">As credenciais de acesso foram ativadas com sucesso.</p>
+      {/* Search Modal */}
+      {isSearchModalOpen && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fadeIn">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden animate-slideUp">
+            <div className="p-6 bg-slate-900 text-white flex justify-between items-center">
+              <h3 className="font-black uppercase tracking-widest text-sm">Localizar Usuário</h3>
+              <button onClick={() => setIsSearchModalOpen(false)} className="p-2 hover:bg-slate-800 rounded-full transition-colors">
+                <X size={24} />
+              </button>
+            </div>
+            <div className="p-6">
+              <div className="relative mb-6">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                <input 
+                  type="text" 
+                  placeholder="Pesquisar por nome ou login..." 
+                  className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none font-bold"
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  autoFocus
+                />
               </div>
-            ) : (
-              <>
-                <div className="bg-slate-900 p-8 flex justify-between items-center text-white">
-                  <div className="flex items-center gap-4">
-                    <div className="bg-blue-500 p-3 rounded-2xl shadow-lg shadow-blue-500/20">
-                      {editingUser ? <UserCheck size={24} /> : <UserPlus size={24} />}
+              <div className="max-h-[50vh] overflow-y-auto space-y-2">
+                {filteredUsers.map(user => (
+                  <button
+                    key={user.id}
+                    onClick={() => {
+                      setSelectedUser(user);
+                      setIsSearchModalOpen(false);
+                    }}
+                    className="w-full flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl hover:border-blue-200 hover:bg-blue-50 transition-all group"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center font-black text-xs">
+                        {user.name.slice(0, 2).toUpperCase()}
+                      </div>
+                      <div className="text-left">
+                        <p className="font-bold text-slate-900">{user.employeeName}</p>
+                        <p className="text-[10px] font-black text-slate-400 uppercase">{user.role} • {user.name}</p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="text-xl font-black uppercase tracking-tight">
-                        {editingUser ? 'Editar Perfil' : 'Novo Colaborador'}
-                      </h3>
-                      <p className="text-xs text-slate-400 font-medium">
-                        {editingUser ? `A alterar dados de ${editingUser.name}` : 'Preencha os dados de acesso corporativo.'}
-                      </p>
-                    </div>
-                  </div>
-                  <button onClick={() => setIsModalOpen(false)} className="hover:bg-slate-800 p-3 rounded-2xl text-slate-400 hover:text-white transition-all">
-                    <X size={24} />
+                    <ChevronRight size={20} className="text-slate-300 group-hover:text-blue-500 transition-colors" />
                   </button>
-                </div>
-
-                <form onSubmit={handleSubmit} className="p-10 space-y-6">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nome de Usuário</label>
-                      <input 
-                        required 
-                        type="text" 
-                        autoFocus
-                        className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none font-medium text-slate-700" 
-                        placeholder="Ex: joao.santos"
-                        value={formData.name}
-                        onChange={e => setFormData({...formData, name: e.target.value})}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nome do Funcionário</label>
-                      <input 
-                        required 
-                        type="text" 
-                        className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none font-medium text-slate-700" 
-                        placeholder="Ex: João Ferreira Santos"
-                        value={formData.employeeName}
-                        onChange={e => setFormData({...formData, employeeName: e.target.value})}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Email Corporativo</label>
-                    <div className="relative">
-                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                      <input 
-                        required 
-                        type="email" 
-                        className="w-full pl-12 pr-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none font-medium text-slate-700" 
-                        placeholder="usuario@medstock.pro"
-                        value={formData.email}
-                        onChange={e => setFormData({...formData, email: e.target.value})}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Senha Inicial</label>
-                      <div className="relative">
-                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                        <input 
-                          required 
-                          type="password" 
-                          className="w-full pl-12 pr-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none font-medium" 
-                          placeholder="********"
-                          value={formData.password}
-                          onChange={e => setFormData({...formData, password: e.target.value})}
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Função</label>
-                      <div className="relative">
-                        <Shield className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                        <select 
-                          required
-                          className="w-full pl-12 pr-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none appearance-none font-bold text-slate-700"
-                          value={formData.role}
-                          onChange={e => setFormData({...formData, role: e.target.value as UserRole})}
-                        >
-                          {Object.values(UserRole).map(role => (
-                            <option key={role} value={role}>{role}</option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="pt-8 flex gap-4">
-                    <button 
-                      type="button" 
-                      onClick={() => setIsModalOpen(false)} 
-                      className="flex-1 py-4 font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-2xl transition-all"
-                    >
-                      Cancelar
-                    </button>
-                    <button 
-                      type="submit" 
-                      className="flex-1 py-4 font-black text-white bg-blue-600 hover:bg-blue-700 rounded-2xl transition-all shadow-xl shadow-blue-200 uppercase tracking-widest text-sm"
-                    >
-                      {editingUser ? 'Salvar Alterações' : 'Criar Acesso'}
-                    </button>
-                  </div>
-                </form>
-              </>
-            )}
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       )}
-      {/* Logs de Atividade */}
-      <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
-        <div className="p-8 border-b border-slate-50 flex justify-between items-center">
-          <div>
-            <h3 className="font-bold text-slate-800">Logs de Atividade</h3>
-            <p className="text-xs text-slate-400">Registo de alterações críticas no sistema.</p>
-          </div>
-          <button className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Ver Tudo</button>
-        </div>
-        <div className="divide-y divide-slate-50">
-          {[
-            { user: 'Admin', action: 'Alterou preço do Paracetamol', time: 'Há 5 min', type: 'PREÇO' },
-            { user: 'Mamadú Baldé', action: 'Entrada de stock: Lote GF-2026-01', time: 'Há 2 horas', type: 'STOCK' },
-            { user: 'Fatu Djalo', action: 'Venda realizada: INV-2026-105', time: 'Há 3 horas', type: 'VENDA' },
-          ].map((log, i) => (
-            <div key={i} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
-              <div className="flex items-center gap-4">
-                <div className={`w-2 h-2 rounded-full ${
-                  log.type === 'PREÇO' ? 'bg-amber-500' : log.type === 'STOCK' ? 'bg-blue-500' : 'bg-emerald-500'
-                }`}></div>
-                <div>
-                  <p className="text-sm font-bold text-slate-700">{log.action}</p>
-                  <p className="text-[10px] text-slate-400 font-medium">{log.user} • {log.time}</p>
-                </div>
-              </div>
-              <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">{log.type}</span>
+
+      {/* Success Toast */}
+      {successToast?.show && (
+        <div className="fixed bottom-8 right-8 z-[300] animate-slideUp">
+          <div className="bg-emerald-600 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-4 border-2 border-emerald-400">
+            <CheckCircle2 size={24} />
+            <div>
+              <p className="font-black text-sm uppercase tracking-tighter">SUCESSO</p>
+              <p className="text-emerald-50 text-xs">{successToast.message}</p>
             </div>
-          ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

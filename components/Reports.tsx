@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
-import { BarChart3, Calendar, AlertTriangle, TrendingUp, MapPin, Download, DollarSign } from 'lucide-react';
-import { Product, Sale, Client } from '../types';
+import { BarChart3, Calendar, AlertTriangle, TrendingUp, MapPin, Download, DollarSign, Package, CheckCircle2, List } from 'lucide-react';
+import { Product, Sale, Client, MedicineCategory } from '../types';
 import { formatCurrency } from '../constants';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
 
@@ -12,7 +12,8 @@ interface ReportsProps {
 }
 
 const Reports: React.FC<ReportsProps> = ({ products, sales, clients }) => {
-  const [activeTab, setActiveTab] = useState<'expiry' | 'financial' | 'region' | 'import'>('expiry');
+  const [activeTab, setActiveTab] = useState<'expiry' | 'financial' | 'region' | 'import' | 'lowStock' | 'detailedSales'>('expiry');
+  const [lowStockCategory, setLowStockCategory] = useState<string>('all');
 
   // 1. Relatório de Validade
   const nearExpiryProducts = products.flatMap(p => 
@@ -52,6 +53,19 @@ const Reports: React.FC<ReportsProps> = ({ products, sales, clients }) => {
     return acc;
   }, []).slice(0, 7).reverse();
 
+  // 4. Relatório de Stock Baixo
+  const lowStockProducts = products.map(p => {
+    const currentStock = p.batches.reduce((sum, b) => sum + b.quantity, 0);
+    return {
+      ...p,
+      currentStock,
+      criticalLevel: currentStock / p.minStockAlert
+    };
+  })
+  .filter(p => p.currentStock < p.minStockAlert)
+  .filter(p => lowStockCategory === 'all' || p.category === lowStockCategory)
+  .sort((a, b) => a.criticalLevel - b.criticalLevel);
+
   const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 
   return (
@@ -70,7 +84,9 @@ const Reports: React.FC<ReportsProps> = ({ products, sales, clients }) => {
       <div className="flex gap-2 p-1 bg-slate-100 rounded-2xl w-fit">
         {[
           { id: 'expiry', label: 'Validade', icon: AlertTriangle },
+          { id: 'lowStock', label: 'Stock Baixo', icon: Package },
           { id: 'financial', label: 'Financeiro', icon: TrendingUp },
+          { id: 'detailedSales', label: 'Vendas Detalhadas', icon: List },
           { id: 'region', label: 'Regiões', icon: MapPin },
           { id: 'import', label: 'Importação', icon: DollarSign },
         ].map(tab => (
@@ -154,6 +170,88 @@ const Reports: React.FC<ReportsProps> = ({ products, sales, clients }) => {
         </div>
       )}
 
+      {activeTab === 'lowStock' && (
+        <div className="space-y-6">
+          <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div>
+              <h3 className="font-bold text-slate-800">Produtos com Stock Abaixo do Mínimo</h3>
+              <p className="text-xs text-slate-400">Ordenados por nível de criticidade (mais urgente primeiro).</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Filtrar Categoria:</label>
+              <select 
+                className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm font-bold outline-none focus:ring-2 focus:ring-emerald-500"
+                value={lowStockCategory}
+                onChange={(e) => setLowStockCategory(e.target.value)}
+              >
+                <option value="all">Todas as Categorias</option>
+                {Object.values(MedicineCategory).map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-slate-50 text-slate-400 font-bold uppercase text-[10px]">
+                  <tr>
+                    <th className="px-8 py-4">Medicamento</th>
+                    <th className="px-8 py-4">Código</th>
+                    <th className="px-8 py-4">Categoria</th>
+                    <th className="px-8 py-4 text-center">Stock Atual</th>
+                    <th className="px-8 py-4 text-center">Mínimo Alerta</th>
+                    <th className="px-8 py-4 text-center">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {lowStockProducts.map((product) => (
+                    <tr key={product.id} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="px-8 py-4">
+                        <p className="font-bold text-slate-800">{product.name}</p>
+                        <p className="text-[10px] text-slate-400">{product.genericName}</p>
+                      </td>
+                      <td className="px-8 py-4 font-mono text-xs">{product.code}</td>
+                      <td className="px-8 py-4">
+                        <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter">
+                          {product.category}
+                        </span>
+                      </td>
+                      <td className="px-8 py-4 text-center font-black text-red-600">
+                        {product.currentStock} un
+                      </td>
+                      <td className="px-8 py-4 text-center font-bold text-slate-400">
+                        {product.minStockAlert} un
+                      </td>
+                      <td className="px-8 py-4 text-center">
+                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                          product.criticalLevel < 0.2 ? 'bg-red-600 text-white animate-pulse' : 
+                          product.criticalLevel < 0.5 ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-600'
+                        }`}>
+                          {product.criticalLevel < 0.2 ? 'Crítico' : 
+                           product.criticalLevel < 0.5 ? 'Muito Baixo' : 'Baixo'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                  {lowStockProducts.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="px-8 py-20 text-center text-slate-400">
+                        <div className="flex flex-col items-center gap-2">
+                          <CheckCircle2 className="text-emerald-500" size={40} />
+                          <p className="font-medium">Excelente! Todos os produtos estão com stock adequado.</p>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
       {activeTab === 'financial' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
@@ -196,6 +294,61 @@ const Reports: React.FC<ReportsProps> = ({ products, sales, clients }) => {
                 </PieChart>
               </ResponsiveContainer>
             </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'detailedSales' && (
+        <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden animate-fadeIn">
+          <div className="p-6 border-b border-slate-50">
+            <h3 className="font-bold text-slate-800">Relatório Detalhado de Vendas</h3>
+            <p className="text-xs text-slate-400">Listagem completa de transações por item.</p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-[10px]">
+              <thead className="bg-slate-50 text-slate-400 font-bold uppercase">
+                <tr>
+                  <th className="px-4 py-3">Fatura</th>
+                  <th className="px-4 py-3">Data</th>
+                  <th className="px-4 py-3">Cliente</th>
+                  <th className="px-4 py-3">Código</th>
+                  <th className="px-4 py-3">Produto</th>
+                  <th className="px-4 py-3">Lote</th>
+                  <th className="px-4 py-3">Validade</th>
+                  <th className="px-4 py-3 text-center">Qtd</th>
+                  <th className="px-4 py-3 text-right">Preço Un.</th>
+                  <th className="px-4 py-3 text-center">Desc.</th>
+                  <th className="px-4 py-3 text-center">IVA</th>
+                  <th className="px-4 py-3 text-right">Total Item</th>
+                  <th className="px-4 py-3">Pagamento</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {sales.flatMap(sale => 
+                  sale.items.map((item, idx) => (
+                    <tr key={`${sale.id}-${idx}`} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="px-4 py-3 font-mono font-bold text-slate-900">{sale.invoiceNumber}</td>
+                      <td className="px-4 py-3 text-slate-500 whitespace-nowrap">{new Date(sale.date).toLocaleDateString('pt')}</td>
+                      <td className="px-4 py-3 font-medium text-slate-700">{sale.clientName}</td>
+                      <td className="px-4 py-3 font-mono text-slate-400">{item.productCode}</td>
+                      <td className="px-4 py-3 font-bold text-slate-800">{item.productName}</td>
+                      <td className="px-4 py-3 font-mono text-slate-400 uppercase">{item.batchNumber}</td>
+                      <td className="px-4 py-3 text-slate-500">{new Date(item.expiryDate).toLocaleDateString('pt', { month: '2-digit', year: 'numeric' })}</td>
+                      <td className="px-4 py-3 text-center font-bold text-slate-900">{item.quantity}</td>
+                      <td className="px-4 py-3 text-right text-slate-600">{formatCurrency(item.unitPrice)}</td>
+                      <td className="px-4 py-3 text-center text-red-500 font-bold">{sale.discount}%</td>
+                      <td className="px-4 py-3 text-center text-blue-500 font-bold">{sale.iva}%</td>
+                      <td className="px-4 py-3 text-right font-black text-emerald-600">{formatCurrency(item.total)}</td>
+                      <td className="px-4 py-3">
+                        <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-[8px] font-black uppercase">
+                          {sale.paymentMethod}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       )}

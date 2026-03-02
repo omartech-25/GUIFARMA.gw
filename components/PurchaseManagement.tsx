@@ -402,6 +402,16 @@ const PurchaseManagement: React.FC<PurchaseManagementProps> = ({ products, purch
                     <span className="font-black text-slate-900">TOTAL COMPRA:</span>
                     <span className="text-xl font-black text-blue-600">{formatCurrency(viewingPurchase.total)}</span>
                   </div>
+                  {(viewingPurchase.createdBy || viewingPurchase.updatedBy) && (
+                    <div className="flex flex-col items-end gap-1 text-[8px] font-bold text-slate-300 uppercase tracking-widest pt-4">
+                      {viewingPurchase.createdBy && (
+                        <span>Registado por: {viewingPurchase.createdBy} em {new Date(viewingPurchase.createdAt!).toLocaleString('pt')}</span>
+                      )}
+                      {viewingPurchase.updatedBy && viewingPurchase.updatedAt !== viewingPurchase.createdAt && (
+                        <span>Alterado por: {viewingPurchase.updatedBy} em {new Date(viewingPurchase.updatedAt!).toLocaleString('pt')}</span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

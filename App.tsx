@@ -8,41 +8,57 @@ import ClientManagement from './components/ClientManagement';
 import UserManagement from './components/UserManagement';
 import PurchaseManagement from './components/PurchaseManagement';
 import Reports from './components/Reports';
+import Accounting from './components/Accounting';
+import CashDesk from './components/CashDesk';
 import Login from './components/Login';
-import { ViewType, UserRole, Product, Sale, Client, User, Purchase } from './types';
-import { MOCK_PRODUCTS, MOCK_SALES, MOCK_USER, MOCK_CLIENTS } from './constants';
+import { ViewType, UserRole, Product, Sale, Client, User, Purchase, JournalEntry, CreditNote, SaleStatus, CashSession, CashMovement, PaymentMethod, UserPermissions } from './types';
+import { MOCK_PRODUCTS, MOCK_SALES, MOCK_USER, MOCK_CLIENTS, DEFAULT_PERMISSIONS } from './constants';
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [currentView, setCurrentView] = useState<ViewType>('dashboard');
+  const [preSelectedProductId, setPreSelectedProductId] = useState<string | undefined>(undefined);
   const [products, setProducts] = useState<Product[]>(MOCK_PRODUCTS);
   const [sales, setSales] = useState<Sale[]>(MOCK_SALES);
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [clients, setClients] = useState<Client[]>(MOCK_CLIENTS);
+  const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
+  const [creditNotes, setCreditNotes] = useState<CreditNote[]>([]);
+  const [cashSessions, setCashSessions] = useState<CashSession[]>([]);
+  const [cashMovements, setCashMovements] = useState<CashMovement[]>([]);
   const [users, setUsers] = useState<User[]>([
     MOCK_USER,
-    { id: 'u2', name: 'Mamadú Baldé', email: 'mamadu@medstock.pro', role: UserRole.STOCK_MANAGER },
-    { id: 'u3', name: 'Fatu Djalo', email: 'fatu@medstock.pro', role: UserRole.SELLER }
+    { id: 'u2', name: 'Mamadú Baldé', email: 'mamadu@medstock.pro', role: UserRole.STOCK_MANAGER, employeeName: 'Mamadú Baldé', permissions: DEFAULT_PERMISSIONS },
+    { id: 'u3', name: 'Fatu Djalo', email: 'fatu@medstock.pro', role: UserRole.SELLER, employeeName: 'Fatu Djalo', permissions: DEFAULT_PERMISSIONS }
   ]);
 
   // Verificar sessão ao carregar
   useEffect(() => {
     const session = localStorage.getItem('medstock_session');
-    if (session === 'active') {
-      setIsAuthenticated(true);
+    const userId = localStorage.getItem('medstock_user_id');
+    if (session === 'active' && userId) {
+      const user = users.find(u => u.id === userId);
+      if (user) {
+        setIsAuthenticated(true);
+        setCurrentUser(user);
+      }
     }
-  }, []);
+  }, [users]);
 
   const handleLogin = async (email: string, pass: string) => {
     // Simulação da lógica que seria processada pelo login.php
     return new Promise<boolean>((resolve) => {
       setTimeout(() => {
+        const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
         // Aceita 'admin' ou 'admin123' para facilitar o teste inicial
-        const isValid = email.toLowerCase() === 'admin@medstock.pro' && (pass === 'admin' || pass === 'admin123');
+        const isValid = user && (pass === 'admin' || pass === 'admin123');
         
         if (isValid) {
           localStorage.setItem('medstock_session', 'active');
+          localStorage.setItem('medstock_user_id', user.id);
           setIsAuthenticated(true);
+          setCurrentUser(user);
           resolve(true);
         } else {
           resolve(false);
@@ -53,28 +69,171 @@ const App: React.FC = () => {
 
   const handleLogout = () => {
     localStorage.removeItem('medstock_session');
+    localStorage.removeItem('medstock_user_id');
     setIsAuthenticated(false);
+    setCurrentUser(null);
     setCurrentView('dashboard'); // Reset view on logout
   };
 
   const handleUpdateProduct = (updatedProduct: Product) => {
-    setProducts(prev => prev.map(p => p.id === updatedProduct.id ? updatedProduct : p));
+    const productWithAudit = {
+      ...updatedProduct,
+      updatedBy: currentUser?.name || 'Sistema',
+      updatedAt: new Date().toISOString()
+    };
+    setProducts(prev => prev.map(p => p.id === updatedProduct.id ? productWithAudit : p));
   };
 
   const handleAddProduct = (newProduct: Product) => {
-    setProducts(prev => [...prev, newProduct]);
+    const productWithAudit = {
+      ...newProduct,
+      createdBy: currentUser?.name || 'Sistema',
+      createdAt: new Date().toISOString(),
+      updatedBy: currentUser?.name || 'Sistema',
+      updatedAt: new Date().toISOString()
+    };
+    setProducts(prev => [...prev, productWithAudit]);
   };
 
   const handleAddSale = (newSale: Sale) => {
-    setSales(prev => [newSale, ...prev]);
+    const saleWithAudit = {
+      ...newSale,
+      createdBy: currentUser?.name || 'Sistema',
+      createdAt: new Date().toISOString(),
+      updatedBy: currentUser?.name || 'Sistema',
+      updatedAt: new Date().toISOString()
+    };
+    setSales(prev => [saleWithAudit, ...prev]);
+
+    // Add Cash Movement if paid in cash
+    if (newSale.paymentMethod === PaymentMethod.CASH && newSale.status === SaleStatus.PAID) {
+      handleAddCashMovement({
+        type: 'Entrada',
+        category: 'Venda',
+        description: `Venda ${newSale.invoiceNumber}`,
+        amount: newSale.total,
+        paymentMethod: PaymentMethod.CASH,
+        reference: newSale.invoiceNumber
+      });
+    }
+
+    // Automatic Accounting Entries
+    const entries: JournalEntry[] = [
+      {
+        id: `je-${Date.now()}-1`,
+        date: newSale.date,
+        reference: newSale.invoiceNumber,
+        accountCode: '411',
+        accountName: 'Clientes',
+        description: `Venda a ${newSale.clientName}`,
+        debit: newSale.total,
+        credit: 0,
+        type: 'Venda',
+        createdBy: MOCK_USER.name,
+        createdAt: new Date().toISOString()
+      },
+      {
+        id: `je-${Date.now()}-2`,
+        date: newSale.date,
+        reference: newSale.invoiceNumber,
+        accountCode: '701',
+        accountName: 'Vendas de Mercadorias',
+        description: `Receita de Venda - ${newSale.invoiceNumber}`,
+        debit: 0,
+        credit: newSale.taxableBase,
+        type: 'Venda',
+        createdBy: MOCK_USER.name,
+        createdAt: new Date().toISOString()
+      },
+      {
+        id: `je-${Date.now()}-3`,
+        date: newSale.date,
+        reference: newSale.invoiceNumber,
+        accountCode: '443',
+        accountName: 'Estado, IVA Facturado',
+        description: `IVA sobre Venda - ${newSale.invoiceNumber}`,
+        debit: 0,
+        credit: newSale.total - newSale.taxableBase,
+        type: 'Venda',
+        createdBy: MOCK_USER.name,
+        createdAt: new Date().toISOString()
+      }
+    ];
+    setJournalEntries(prev => [...entries, ...prev]);
+  };
+
+  const handleAddCreditNote = (newCreditNote: CreditNote) => {
+    const cnWithAudit = {
+      ...newCreditNote,
+      createdBy: MOCK_USER.name,
+      createdAt: new Date().toISOString()
+    };
+    setCreditNotes(prev => [cnWithAudit, ...prev]);
+    
+    // Update Sale status to CANCELLED
+    setSales(prev => prev.map(s => s.id === newCreditNote.invoiceId ? { ...s, status: SaleStatus.CANCELLED } : s));
+
+    // Accounting reversal
+    const entries: JournalEntry[] = [
+      {
+        id: `je-cn-${Date.now()}-1`,
+        date: newCreditNote.date,
+        reference: newCreditNote.creditNoteNumber,
+        accountCode: '411',
+        accountName: 'Clientes',
+        description: `Nota de Crédito - Ref ${newCreditNote.invoiceNumber}`,
+        debit: 0,
+        credit: newCreditNote.amount,
+        type: 'Manual',
+        createdBy: MOCK_USER.name,
+        createdAt: new Date().toISOString()
+      },
+      {
+        id: `je-cn-${Date.now()}-2`,
+        date: newCreditNote.date,
+        reference: newCreditNote.creditNoteNumber,
+        accountCode: '701',
+        accountName: 'Vendas de Mercadorias',
+        description: `Estorno de Venda - Ref ${newCreditNote.invoiceNumber}`,
+        debit: newCreditNote.amount,
+        credit: 0,
+        type: 'Manual',
+        createdBy: MOCK_USER.name,
+        createdAt: new Date().toISOString()
+      }
+    ];
+    setJournalEntries(prev => [...entries, ...prev]);
+  };
+
+  const handleUpdateSale = (updatedSale: Sale) => {
+    const saleWithAudit = {
+      ...updatedSale,
+      updatedBy: MOCK_USER.name,
+      updatedAt: new Date().toISOString()
+    };
+    setSales(prev => prev.map(s => s.id === updatedSale.id ? saleWithAudit : s));
   };
 
   const handleAddPurchase = (newPurchase: Purchase) => {
-    setPurchases(prev => [newPurchase, ...prev]);
+    const purchaseWithAudit = {
+      ...newPurchase,
+      createdBy: MOCK_USER.name,
+      createdAt: new Date().toISOString(),
+      updatedBy: MOCK_USER.name,
+      updatedAt: new Date().toISOString()
+    };
+    setPurchases(prev => [purchaseWithAudit, ...prev]);
   };
 
   const handleAddClient = (newClient: Client) => {
-    setClients(prev => [...prev, newClient]);
+    const clientWithAudit = {
+      ...newClient,
+      createdBy: MOCK_USER.name,
+      createdAt: new Date().toISOString(),
+      updatedBy: MOCK_USER.name,
+      updatedAt: new Date().toISOString()
+    };
+    setClients(prev => [...prev, clientWithAudit]);
   };
 
   const handleAddUser = (newUser: User) => {
@@ -85,7 +244,88 @@ const App: React.FC = () => {
     setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
   };
 
-  if (!isAuthenticated) {
+  const handleDeleteUser = (userId: string) => {
+    setUsers(prev => prev.filter(u => u.id !== userId));
+  };
+
+  const handleDeleteProduct = (productId: string) => {
+    setProducts(prev => prev.filter(p => p.id !== productId));
+  };
+
+  const handleStartSaleFromStock = (productId: string) => {
+    setPreSelectedProductId(productId);
+    setCurrentView('sales');
+  };
+
+  const handleOpenCashSession = (openingBalance: number) => {
+    const newSession: CashSession = {
+      id: `cs-${Date.now()}`,
+      userId: MOCK_USER.id,
+      userName: MOCK_USER.name,
+      openingDate: new Date().toISOString(),
+      openingBalance,
+      status: 'Aberto',
+      createdBy: MOCK_USER.name,
+      createdAt: new Date().toISOString()
+    };
+    setCashSessions(prev => [newSession, ...prev]);
+  };
+
+  const handleCloseCashSession = (closingBalance: number) => {
+    setCashSessions(prev => prev.map(s => {
+      if (s.status === 'Aberto') {
+        const currentMovements = cashMovements.filter(m => new Date(m.date) >= new Date(s.openingDate));
+        const inflows = currentMovements.filter(m => m.type === 'Entrada').reduce((sum, m) => sum + m.amount, 0);
+        const outflows = currentMovements.filter(m => m.type === 'Saída').reduce((sum, m) => sum + m.amount, 0);
+        const expected = s.openingBalance + inflows - outflows;
+
+        return {
+          ...s,
+          status: 'Fechado',
+          closingDate: new Date().toISOString(),
+          closingBalance,
+          expectedBalance: expected,
+          updatedBy: MOCK_USER.name,
+          updatedAt: new Date().toISOString()
+        };
+      }
+      return s;
+    }));
+  };
+
+  const handleAddCashMovement = (movement: Partial<CashMovement>) => {
+    const newMovement: CashMovement = {
+      id: `cm-${Date.now()}`,
+      date: movement.date || new Date().toISOString(),
+      type: movement.type || 'Entrada',
+      category: movement.category || 'Outros',
+      description: movement.description || '',
+      amount: movement.amount || 0,
+      paymentMethod: movement.paymentMethod || PaymentMethod.CASH,
+      reference: movement.reference,
+      createdBy: MOCK_USER.name,
+      createdAt: new Date().toISOString()
+    };
+    setCashMovements(prev => [newMovement, ...prev]);
+
+    // Also add to accounting
+    const entry: JournalEntry = {
+      id: `je-cash-${Date.now()}`,
+      date: newMovement.date,
+      reference: newMovement.reference || 'CAIXA',
+      accountCode: '571',
+      accountName: 'Caixa',
+      description: newMovement.description,
+      debit: newMovement.type === 'Entrada' ? newMovement.amount : 0,
+      credit: newMovement.type === 'Saída' ? newMovement.amount : 0,
+      type: 'Caixa',
+      createdBy: currentUser?.name || 'Sistema',
+      createdAt: new Date().toISOString()
+    };
+    setJournalEntries(prev => [entry, ...prev]);
+  };
+
+  if (!isAuthenticated || !currentUser) {
     return <Login onLogin={handleLogin} />;
   }
 
@@ -97,8 +337,13 @@ const App: React.FC = () => {
         return (
           <StockManagement 
             products={products} 
+            sales={sales}
+            purchases={purchases}
             onUpdateProduct={handleUpdateProduct} 
             onAddProduct={handleAddProduct}
+            onDeleteProduct={handleDeleteProduct}
+            onStartSale={handleStartSaleFromStock}
+            onAddPurchase={handleAddPurchase}
           />
         );
       case 'purchases':
@@ -116,8 +361,14 @@ const App: React.FC = () => {
             products={products} 
             sales={sales} 
             clients={clients}
+            creditNotes={creditNotes}
+            initialProductId={preSelectedProductId}
+            currentUser={currentUser}
             onAddSale={handleAddSale}
+            onUpdateSale={handleUpdateSale}
             onUpdateProduct={handleUpdateProduct}
+            onAddCreditNote={handleAddCreditNote}
+            onPDVClose={() => setPreSelectedProductId(undefined)}
           />
         );
       case 'clients':
@@ -133,6 +384,7 @@ const App: React.FC = () => {
             users={users} 
             onAddUser={handleAddUser} 
             onUpdateUser={handleUpdateUser}
+            onDeleteUser={handleDeleteUser}
           />
         );
       case 'reports':
@@ -141,6 +393,27 @@ const App: React.FC = () => {
             products={products} 
             sales={sales} 
             clients={clients} 
+          />
+        );
+      case 'accounting':
+        return (
+          <Accounting 
+            sales={sales}
+            purchases={purchases}
+            products={products}
+            journalEntries={journalEntries}
+            onAddJournalEntry={(entry) => setJournalEntries(prev => [entry, ...prev])}
+          />
+        );
+      case 'cash':
+        return (
+          <CashDesk 
+            sessions={cashSessions}
+            movements={cashMovements}
+            currentUser={currentUser}
+            onOpenSession={handleOpenCashSession}
+            onCloseSession={handleCloseCashSession}
+            onAddMovement={handleAddCashMovement}
           />
         );
       default:
@@ -153,7 +426,7 @@ const App: React.FC = () => {
       <Sidebar 
         currentView={currentView} 
         setView={setCurrentView} 
-        userRole={MOCK_USER.role} 
+        user={currentUser} 
         onLogout={handleLogout}
       />
       

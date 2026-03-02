@@ -114,6 +114,9 @@ const ClientManagement: React.FC<ClientManagementProps> = ({ clients, onAddClien
                 <td className="px-6 py-4">
                   <p className="font-bold text-slate-800">{client.name}</p>
                   <p className="text-[10px] text-slate-400 font-mono">NIF: {client.nif}</p>
+                  {client.createdBy && (
+                    <p className="text-[8px] text-slate-300 font-bold uppercase mt-1">Criado por: {client.createdBy}</p>
+                  )}
                 </td>
                 <td className="px-6 py-4 text-slate-600 font-medium">{client.technicalResponsible}</td>
                 <td className="px-6 py-4">

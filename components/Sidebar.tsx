@@ -8,26 +8,30 @@ import {
   BarChart3, 
   Settings, 
   LogOut, 
-  Pill 
+  Pill,
+  BookOpen,
+  Wallet
 } from 'lucide-react';
-import { ViewType, UserRole } from '../types';
+import { ViewType, UserRole, User } from '../types';
 
 interface SidebarProps {
   currentView: ViewType;
   setView: (view: ViewType) => void;
-  userRole: UserRole;
+  user: User;
   onLogout?: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ currentView, setView, userRole, onLogout }) => {
+const Sidebar: React.FC<SidebarProps> = ({ currentView, setView, user, onLogout }) => {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'stock', label: 'Estoque', icon: Package },
-    { id: 'purchases', label: 'Entradas', icon: Package }, // Using Package icon for now, or maybe something else
-    { id: 'sales', label: 'Vendas', icon: ShoppingCart },
-    { id: 'clients', label: 'Clientes', icon: Users },
-    { id: 'reports', label: 'Relatórios', icon: BarChart3 },
-    { id: 'users', label: 'Usuários', icon: Settings, adminOnly: true },
+    { id: 'stock', label: 'Estoque', icon: Package, permission: 'registerProducts' },
+    { id: 'purchases', label: 'Entradas', icon: Package, permission: 'stockEntry' },
+    { id: 'sales', label: 'Vendas', icon: ShoppingCart, permission: 'sales' },
+    { id: 'cash', label: 'Caixa', icon: Wallet, permission: 'cashClosing' },
+    { id: 'clients', label: 'Clientes', icon: Users, permission: 'registerClients' },
+    { id: 'reports', label: 'Relatórios', icon: BarChart3, permission: ['reportsRegistration', 'reportsFinancial', 'reportsManagement'] },
+    { id: 'accounting', label: 'Contabilidade', icon: BookOpen, permission: ['bankMovements', 'accountTransfers'] },
+    { id: 'users', label: 'Usuários', icon: Settings, permission: ['registerUsers', 'systemSettings'] },
   ];
 
   return (
@@ -41,7 +45,11 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setView, userRole, onLog
 
       <nav className="flex-1 mt-6 px-3 space-y-1">
         {menuItems.map((item) => {
-          if (item.adminOnly && userRole !== UserRole.ADMIN) return null;
+          if (item.permission) {
+            const permissions = Array.isArray(item.permission) ? item.permission : [item.permission];
+            const hasPermission = permissions.some(p => user.permissions[p as keyof typeof user.permissions]);
+            if (!hasPermission) return null;
+          }
           
           const Icon = item.icon;
           const isActive = currentView === item.id;
@@ -65,12 +73,12 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setView, userRole, onLog
 
       <div className="p-4 border-t border-slate-800">
         <div className="flex items-center gap-3 mb-4 p-2">
-          <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-sm font-bold">
-            AS
+          <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-sm font-bold uppercase">
+            {user.name.slice(0, 2)}
           </div>
           <div className="overflow-hidden">
-            <p className="text-sm font-semibold truncate">António Silva</p>
-            <p className="text-xs text-slate-500 truncate">{userRole}</p>
+            <p className="text-sm font-semibold truncate">{user.employeeName || user.name}</p>
+            <p className="text-xs text-slate-500 truncate">{user.role}</p>
           </div>
         </div>
         <button 

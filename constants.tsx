@@ -1,12 +1,36 @@
 
-import { Product, MedicineCategory, Client, UserRole, User, Sale, PaymentMethod, PharmaceuticalForm, SaleStatus } from './types';
+import { Product, MedicineCategory, Client, UserRole, User, Sale, PaymentMethod, PharmaceuticalForm, SaleStatus, UserPermissions } from './types';
+
+export const DEFAULT_PERMISSIONS: UserPermissions = {
+  systemSettings: true,
+  registerUsers: true,
+  registerClients: true,
+  registerSuppliers: true,
+  registerProducts: true,
+  registerBankAccounts: true,
+  registerCardMachines: true,
+  stockEntry: true,
+  cashClosing: true,
+  receiptsCompensations: true,
+  registerExpenses: true,
+  payExpenses: true,
+  registerSangriaSuprimento: true,
+  bankMovements: true,
+  accountTransfers: true,
+  sales: true,
+  systemTools: true,
+  reportsRegistration: true,
+  reportsFinancial: true,
+  reportsManagement: true,
+};
 
 export const MOCK_USER: User = {
   id: 'u1',
   name: 'António Silva',
   employeeName: 'António Silva',
   role: UserRole.ADMIN,
-  email: 'admin@medstock.pro'
+  email: 'admin@medstock.pro',
+  permissions: DEFAULT_PERMISSIONS
 };
 
 export const MOCK_PRODUCTS: Product[] = [
@@ -88,6 +112,7 @@ export const MOCK_PRODUCTS: Product[] = [
     manufacturer: 'EuroMed Supplies',
     sanitaryRegistry: 'MS-GB-2023-099',
     unitsPerBox: 5,
+    isControlled: true,
     batches: [
       { 
         id: 'b4', 
@@ -175,39 +200,47 @@ export const MOCK_CLIENTS: Client[] = [
 export const MOCK_SALES: Sale[] = [
   {
     id: 's1',
-    invoiceNumber: 'INV-2024-001',
+    invoiceNumber: 'GF-2024-000001',
     date: '2024-03-10T14:30:00Z',
+    dueDate: '2024-04-10T14:30:00Z',
     clientId: 'c1',
     clientName: 'Farmácia Esperança',
     clientNif: '500123456',
+    clientAddress: 'Avenida 3 de Agosto, Bissau',
+    technicalResponsible: 'Dra. Fatu Djalo',
     subtotal: 155000,
     discount: 0,
+    taxableBase: 155000,
     iva: 18,
     total: 182900,
     paymentMethod: PaymentMethod.CASH,
     status: SaleStatus.PAID,
     sellerId: 'u1',
     items: [
-      { productId: 'p1', productName: 'Amoxicilina GUIFARMA', batchId: 'b1', quantity: 20, unitPrice: 4500, total: 90000 },
-      { productId: 'p2', productName: 'Paracetamol GUIFARMA', batchId: 'b3', quantity: 50, unitPrice: 1300, total: 65000 }
+      { productId: 'p1', productCode: 'AMX-500', productName: 'Amoxicilina GUIFARMA', batchId: 'b1', batchNumber: 'INT-23-001', expiryDate: '2025-12-30', quantity: 20, unitPrice: 4500, total: 90000 },
+      { productId: 'p2', productCode: 'PAR-750', productName: 'Paracetamol GUIFARMA', batchId: 'b3', batchNumber: 'INT-24-001', expiryDate: '2026-01-10', quantity: 50, unitPrice: 1300, total: 65000 }
     ]
   },
   {
     id: 's2',
-    invoiceNumber: 'INV-2024-002',
+    invoiceNumber: 'GF-2024-000002',
     date: '2024-03-11T10:00:00Z',
+    dueDate: '2024-04-11T10:00:00Z',
     clientId: 'c4',
     clientName: 'Farmácia Bafatá Central',
     clientNif: '500222333',
+    clientAddress: 'Centro de Bafatá',
+    technicalResponsible: 'Dr. Umaro Sissoco',
     subtotal: 45000,
     discount: 5,
+    taxableBase: 42750,
     iva: 18,
     total: 50445,
     paymentMethod: PaymentMethod.ORANGE_MONEY,
     status: SaleStatus.PAID,
     sellerId: 'u1',
     items: [
-      { productId: 'p1', productName: 'Amoxicilina GUIFARMA', batchId: 'b1', quantity: 10, unitPrice: 4500, total: 45000 }
+      { productId: 'p1', productCode: 'AMX-500', productName: 'Amoxicilina GUIFARMA', batchId: 'b1', batchNumber: 'INT-23-001', expiryDate: '2025-12-30', quantity: 10, unitPrice: 4500, total: 45000 }
     ]
   }
 ];
