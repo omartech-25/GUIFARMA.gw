@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Search, Plus, Filter, ChevronRight, Package, Calendar, ShoppingCart, X, CheckCircle2, ThermometerSnowflake, MapPin, Save, Trash2, Image as ImageIcon, Calculator, History, ArrowLeftRight, AlertCircle } from 'lucide-react';
+import { Search, Plus, Filter, ChevronRight, Package, Calendar, ShoppingCart, X, CheckCircle2, ThermometerSnowflake, MapPin, Save, Trash2, Image as ImageIcon, Calculator, History, ArrowLeftRight, AlertCircle, AlertTriangle } from 'lucide-react';
 import { Product, Batch, MedicineCategory, PharmaceuticalForm, Sale, Purchase } from '../types';
 import { formatCurrency } from '../constants';
 
@@ -49,6 +49,7 @@ const StockManagement: React.FC<StockManagementProps> = ({
     location: '',
     minStock: '10',
     maxStock: '100',
+    batch: '',
     imageUrl: ''
   });
 
@@ -88,6 +89,7 @@ const StockManagement: React.FC<StockManagementProps> = ({
         location: selectedProduct.batches[0]?.location || '',
         minStock: selectedProduct.minStockAlert.toString(),
         maxStock: selectedProduct.maxStockAlert?.toString() || '100',
+        batch: selectedProduct.batches[0]?.batchNumber || '',
         imageUrl: selectedProduct.imageUrl || ''
       });
     } else {
@@ -107,6 +109,7 @@ const StockManagement: React.FC<StockManagementProps> = ({
         location: '',
         minStock: '10',
         maxStock: '100',
+        batch: '',
         imageUrl: ''
       });
     }
@@ -122,7 +125,8 @@ const StockManagement: React.FC<StockManagementProps> = ({
   const filteredProducts = products.filter(p => 
     p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     p.genericName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.code.toLowerCase().includes(searchTerm.toLowerCase())
+    p.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    p.batches.some(b => b.batchNumber.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const handleSave = (e: React.FormEvent) => {
@@ -152,7 +156,17 @@ const StockManagement: React.FC<StockManagementProps> = ({
       const newProduct: Product = {
         id: `p-${Date.now()}`,
         ...productData,
-        batches: [],
+        batches: formData.batch ? [{
+          id: `b-${Date.now()}`,
+          batchNumber: formData.batch,
+          manufacturerBatchNumber: formData.batch,
+          manufacturingDate: new Date().toISOString().split('T')[0],
+          expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          quantity: parseInt(formData.stock) || 0,
+          purchasePrice: parseFloat(formData.cost) || 0,
+          location: formData.location,
+          isColdChain: false
+        }] : [],
         unitsPerBox: 1,
       } as Product;
       onAddProduct?.(newProduct);
@@ -312,10 +326,14 @@ const StockManagement: React.FC<StockManagementProps> = ({
                     onChange={e => setSearchTerm(e.target.value)}
                   />
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <div className="flex items-center gap-2 px-4 py-2 bg-amber-50 text-amber-700 rounded-xl border border-amber-100">
                     <AlertCircle size={16} />
-                    <span className="text-[10px] font-black uppercase">Produtos em Alerta: {products.filter(p => p.batches.reduce((sum, b) => sum + b.quantity, 0) < p.minStockAlert).length}</span>
+                    <span className="text-[10px] font-black uppercase">Estoque Baixo: {products.filter(p => p.batches.reduce((sum, b) => sum + b.quantity, 0) < p.minStockAlert).length}</span>
+                  </div>
+                  <div className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-700 rounded-xl border border-red-100">
+                    <AlertTriangle size={16} className="animate-pulse" />
+                    <span className="text-[10px] font-black uppercase">Vencidos/Próx: {products.filter(p => p.batches.some(b => new Date(b.expiryDate) < new Date(Date.now() + 90 * 24 * 60 * 60 * 1000))).length}</span>
                   </div>
                 </div>
               </div>
@@ -334,7 +352,12 @@ const StockManagement: React.FC<StockManagementProps> = ({
                           </div>
                           <div>
                             <h3 className="font-bold text-slate-900">{product.name}</h3>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{product.genericName} • {product.category}</p>
+                            <div className="flex items-center gap-2">
+                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{product.genericName} • {product.category}</p>
+                              {product.batches.length > 0 && (
+                                <span className="text-[9px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded font-bold uppercase">Lote: {product.batches[0].batchNumber}</span>
+                              )}
+                            </div>
                           </div>
                         </div>
                         <div className="flex items-center gap-8">
@@ -373,9 +396,21 @@ const StockManagement: React.FC<StockManagementProps> = ({
                                   'bg-white border-slate-100'
                                 }`}>
                                   <div className="flex justify-between items-start mb-3">
-                                    <div>
-                                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Lote</p>
-                                      <p className="text-xs font-bold text-slate-900">{batch.batchNumber}</p>
+                                    <div className="flex items-center gap-2">
+                                      <div>
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Lote</p>
+                                        <p className="text-xs font-bold text-slate-900">{batch.batchNumber}</p>
+                                      </div>
+                                      {isExpired && (
+                                        <div className="bg-red-500 text-white p-1 rounded-lg animate-pulse">
+                                          <AlertTriangle size={12} />
+                                        </div>
+                                      )}
+                                      {!isExpired && isExpiringSoon && (
+                                        <div className="bg-amber-500 text-white p-1 rounded-lg">
+                                          <AlertCircle size={12} />
+                                        </div>
+                                      )}
                                     </div>
                                     {batch.isColdChain && (
                                       <div className="text-blue-500">
@@ -386,8 +421,10 @@ const StockManagement: React.FC<StockManagementProps> = ({
                                   <div className="space-y-2">
                                     <div className="flex justify-between items-center">
                                       <span className="text-[9px] font-bold text-slate-500 uppercase">Validade:</span>
-                                      <span className={`text-[10px] font-black ${isExpired ? 'text-red-600' : isExpiringSoon ? 'text-amber-600' : 'text-slate-700'}`}>
+                                      <span className={`text-[10px] font-black flex items-center gap-1 ${isExpired ? 'text-red-600' : isExpiringSoon ? 'text-amber-600' : 'text-slate-700'}`}>
                                         {new Date(batch.expiryDate).toLocaleDateString('pt')}
+                                        {isExpired && <span className="text-[8px] font-black uppercase tracking-tighter bg-red-600 text-white px-1 rounded">Vencido</span>}
+                                        {!isExpired && isExpiringSoon && <span className="text-[8px] font-black uppercase tracking-tighter bg-amber-500 text-white px-1 rounded">Próx. Venc.</span>}
                                       </span>
                                     </div>
                                     <div className="flex justify-between items-center">
@@ -427,6 +464,14 @@ const StockManagement: React.FC<StockManagementProps> = ({
                     placeholder="Código"
                     value={formData.code}
                     onChange={e => setFormData({...formData, code: e.target.value})}
+                  />
+                  <label className="md:col-span-2 text-[11px] font-bold text-slate-500 uppercase md:text-right md:pr-4">Lote:</label>
+                  <input 
+                    type="text" 
+                    className="w-full md:col-span-3 px-4 py-2 bg-slate-50 border border-slate-200 rounded-full focus:ring-2 focus:ring-purple-500 outline-none text-sm font-medium"
+                    placeholder="Lote"
+                    value={formData.batch}
+                    onChange={e => setFormData({...formData, batch: e.target.value})}
                   />
                 </div>
 

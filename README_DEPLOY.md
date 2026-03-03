@@ -28,9 +28,10 @@ Para rodar o sistema completo com banco de dados no XAMPP:
 
 ### Passo 3: Configurar o Banco de Dados
 1. Abra o **phpMyAdmin** (`http://localhost/phpmyadmin`).
-2. Crie um novo banco de dados chamado `medstock`.
-3. Importe o arquivo `medstock.sql` (que estará na raiz da sua pasta no XAMPP após o build).
-4. Verifique as configurações de conexão em `config.php`.
+2. Vá na aba **Importar**.
+3. Selecione o arquivo `medstock.sql` (que estará dentro da pasta `public` ou na raiz da sua pasta no XAMPP após o build).
+4. Clique em **Executar**. O script criará automaticamente o banco de dados `medstock` e todas as tabelas necessárias.
+5. Verifique se as credenciais em `config.php` coincidem com seu XAMPP (Padrão: Usuário `root`, Senha vazia).
 
 ### Passo 4: Acessar o sistema
 1. Acesse `http://localhost/gyuifarma` no seu navegador.

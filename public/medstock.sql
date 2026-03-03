@@ -5,8 +5,8 @@
 -- Descrição: Sistema de gestão de stock grossista para Guiné-Bissau
 -- ==========================================================
 
-CREATE DATABASE IF NOT EXISTS medstock_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE medstock_db;
+CREATE DATABASE IF NOT EXISTS medstock CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE medstock;
 
 -- 1. TABELA DE USUÁRIOS (CONTROLE DE ACESSOS)
 CREATE TABLE IF NOT EXISTS users (
