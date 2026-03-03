@@ -197,20 +197,30 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
     setCart(cart.filter((_, i) => i !== index));
   };
 
-  const updateCartQuantity = (index: number, delta: number) => {
+  const updateCartQuantity = (index: number, delta: number | string) => {
     const item = cart[index];
     const product = products.find(p => p.id === item.productId);
     const batch = product?.batches.find(b => b.id === item.batchId);
     
     if (!batch) return;
 
-    const newQty = item.quantity + delta;
+    let newQty: number;
+    if (typeof delta === 'string') {
+      newQty = parseInt(delta) || 0;
+    } else {
+      newQty = item.quantity + delta;
+    }
+
     if (newQty <= 0) {
-      removeFromCart(index);
+      if (typeof delta !== 'string') {
+        removeFromCart(index);
+      }
       return;
     }
 
-    if (newQty > batch.quantity) return;
+    if (newQty > batch.quantity) {
+      newQty = batch.quantity;
+    }
 
     setCart(cart.map((i, idx) => idx === index ? { ...i, quantity: newQty, total: newQty * i.unitPrice } : i));
   };
@@ -539,8 +549,8 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
           </div>
         </div>
 
-        <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
-          <table className="w-full text-left">
+        <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden overflow-x-auto">
+          <table className="w-full text-left min-w-[800px]">
             <thead className="bg-slate-50/50 text-slate-400 text-[10px] font-black uppercase tracking-widest border-b border-slate-100">
               <tr>
                 <th className="px-8 py-5">Nº Fatura</th>
@@ -657,11 +667,11 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
               </div>
             </header>
 
-            <div className="flex-1 flex overflow-hidden">
+            <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
               {/* Esquerda: Produtos */}
-              <div className="w-2/3 p-8 overflow-y-auto space-y-8 bg-slate-50/50">
-                <div className="flex justify-between items-center">
-                  <div className="relative flex-1 max-w-xl">
+              <div className="w-full lg:w-2/3 p-4 md:p-8 overflow-y-auto space-y-8 bg-slate-50/50">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                  <div className="relative flex-1 w-full max-w-xl">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input 
                       type="text" 
@@ -671,14 +681,14 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
                       onChange={e => setSearchTerm(e.target.value)}
                     />
                   </div>
-                  <div className="flex gap-2 ml-4">
+                  <div className="flex gap-2">
                     <button className="p-4 bg-white border border-slate-200 rounded-2xl text-slate-400 hover:text-emerald-600 transition-all">
                       <Filter size={20} />
                     </button>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {products.filter(p => 
                     p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                     p.genericName.toLowerCase().includes(searchTerm.toLowerCase())
@@ -760,7 +770,7 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
               </div>
 
             {/* Direita: Carrinho */}
-            <div className="w-1/3 bg-white border-l border-slate-200 p-8 flex flex-col shadow-2xl">
+            <div className="w-full lg:w-1/3 bg-white border-t lg:border-t-0 lg:border-l border-slate-200 p-4 md:p-8 flex flex-col shadow-2xl">
               <div className="mb-8 space-y-6">
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Cliente / Entidade</label>
@@ -979,18 +989,28 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
                       
                       <div className="flex justify-between items-center">
                         <div className="flex flex-col gap-1">
-                          <div className="flex items-center gap-3 bg-white border border-slate-200 rounded-2xl p-1.5 shadow-sm">
+                          <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-2xl p-1 shadow-sm">
                             <button 
                               onClick={() => updateCartQuantity(idx, -1)}
-                              className="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 font-black"
+                              className="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 font-black transition-colors"
                             >-</button>
-                            <span className="w-10 text-center text-sm font-black text-slate-900">{item.quantity}</span>
+                            <input 
+                              type="number"
+                              className="w-12 text-center text-sm font-black text-slate-900 bg-transparent outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                              value={item.quantity}
+                              onChange={(e) => updateCartQuantity(idx, e.target.value)}
+                            />
                             <button 
                               onClick={() => updateCartQuantity(idx, 1)}
-                              className="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 font-black"
+                              className="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 font-black transition-colors"
                             >+</button>
                           </div>
-                          <p className="text-[9px] font-black text-slate-400 uppercase ml-2">Disponível: {batch?.quantity || 0} un</p>
+                          <div className="flex items-center gap-2 ml-2">
+                            <p className="text-[9px] font-black text-slate-400 uppercase">Stock:</p>
+                            <p className={`text-[9px] font-black uppercase ${batch && batch.quantity < 10 ? 'text-red-500' : 'text-emerald-600'}`}>
+                              {batch?.quantity || 0} un
+                            </p>
+                          </div>
                         </div>
                         <div className="text-right">
                           <p className="text-[10px] text-slate-400 font-bold">{formatCurrency(item.unitPrice)} / un</p>
@@ -1022,7 +1042,14 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
                 <div className="flex justify-between items-end bg-emerald-50 p-6 rounded-[2rem] border border-emerald-100 shadow-inner">
                   <div>
                     <p className="text-emerald-600 font-black text-[10px] uppercase tracking-widest">Total Geral a Pagar</p>
-                    <p className="text-5xl font-black text-emerald-700 tracking-tighter">{formatCurrency(cartTotal)}</p>
+                    <motion.p 
+                      key={cartTotal}
+                      initial={{ scale: 1.1, color: '#10b981' }}
+                      animate={{ scale: 1, color: '#047857' }}
+                      className="text-5xl font-black text-emerald-700 tracking-tighter"
+                    >
+                      {formatCurrency(cartTotal)}
+                    </motion.p>
                   </div>
                   <div className="text-right">
                     <p className="text-[10px] font-black text-emerald-400 uppercase">IVA Incluído (18%)</p>

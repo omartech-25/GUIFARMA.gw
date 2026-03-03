@@ -52,15 +52,15 @@ const Dashboard: React.FC<DashboardProps> = ({ products, sales }) => {
 
   return (
     <div className="space-y-6 animate-fadeIn">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-800">Bem-vindo, Administrador</h2>
-          <p className="text-slate-500">Aqui está o resumo do MedStock Pro hoje.</p>
+          <h2 className="text-xl md:text-2xl font-bold text-slate-800">Bem-vindo, Administrador</h2>
+          <p className="text-sm text-slate-500">Aqui está o resumo do MedStock Pro hoje.</p>
         </div>
         <button 
           onClick={handleGetInsights}
           disabled={isGenerating}
-          className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-4 py-2 rounded-lg shadow-md hover:shadow-lg transition-all disabled:opacity-50"
+          className="w-full md:w-auto flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-4 py-2 rounded-lg shadow-md hover:shadow-lg transition-all disabled:opacity-50"
         >
           {isGenerating ? <Loader2 className="animate-spin" size={20} /> : <BrainCircuit size={20} />}
           Insights Inteligentes AI

@@ -298,7 +298,7 @@ const StockManagement: React.FC<StockManagementProps> = ({
         </div>
 
         {/* Main Content Area */}
-        <div className="bg-white border border-slate-200 rounded-b-xl shadow-xl p-8 min-h-[600px]">
+        <div className="bg-white border border-slate-200 rounded-b-xl shadow-xl p-4 md:p-8 min-h-[600px]">
           {activeTab === 'inventory' && (
             <div className="space-y-6">
               <div className="flex flex-col md:flex-row gap-4 justify-between items-center mb-6">
@@ -416,64 +416,64 @@ const StockManagement: React.FC<StockManagementProps> = ({
           )}
 
           {activeTab === 'details' && (
-            <form onSubmit={handleSave} className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+            <form onSubmit={handleSave} className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
               {/* Left Side: Form Fields */}
               <div className="lg:col-span-7 space-y-6">
-                <div className="grid grid-cols-12 gap-4 items-center">
-                  <label className="col-span-3 text-[11px] font-bold text-slate-500 uppercase text-right pr-4">Código:</label>
+                <div className="flex flex-col md:grid md:grid-cols-12 gap-2 md:gap-4 items-start md:items-center">
+                  <label className="md:col-span-3 text-[11px] font-bold text-slate-500 uppercase md:text-right md:pr-4">Código:</label>
                   <input 
                     type="text" 
-                    className="col-span-4 px-4 py-2 bg-slate-50 border border-slate-200 rounded-full focus:ring-2 focus:ring-purple-500 outline-none text-sm font-medium"
+                    className="w-full md:col-span-4 px-4 py-2 bg-slate-50 border border-slate-200 rounded-full focus:ring-2 focus:ring-purple-500 outline-none text-sm font-medium"
                     placeholder="Código"
                     value={formData.code}
                     onChange={e => setFormData({...formData, code: e.target.value})}
                   />
                 </div>
 
-                <div className="grid grid-cols-12 gap-4 items-center">
-                  <label className="col-span-3 text-[11px] font-bold text-slate-500 uppercase text-right pr-4">Nome Genérico:</label>
+                <div className="flex flex-col md:grid md:grid-cols-12 gap-2 md:gap-4 items-start md:items-center">
+                  <label className="md:col-span-3 text-[11px] font-bold text-slate-500 uppercase md:text-right md:pr-4">Nome Genérico:</label>
                   <input 
                     type="text" 
-                    className="col-span-9 px-4 py-2 bg-slate-50 border border-slate-200 rounded-full focus:ring-2 focus:ring-purple-500 outline-none text-sm font-medium"
+                    className="w-full md:col-span-9 px-4 py-2 bg-slate-50 border border-slate-200 rounded-full focus:ring-2 focus:ring-purple-500 outline-none text-sm font-medium"
                     placeholder="DCI (Ex: Paracetamol)"
                     value={formData.genericName}
                     onChange={e => setFormData({...formData, genericName: e.target.value})}
                   />
                 </div>
 
-                <div className="grid grid-cols-12 gap-4 items-center">
-                  <label className="col-span-3 text-[11px] font-bold text-slate-500 uppercase text-right pr-4">Dosagem:</label>
+                <div className="flex flex-col md:grid md:grid-cols-12 gap-2 md:gap-4 items-start md:items-center">
+                  <label className="md:col-span-3 text-[11px] font-bold text-slate-500 uppercase md:text-right md:pr-4">Dosagem:</label>
                   <input 
                     type="text" 
-                    className="col-span-4 px-4 py-2 bg-slate-50 border border-slate-200 rounded-full focus:ring-2 focus:ring-purple-500 outline-none text-sm font-medium"
+                    className="w-full md:col-span-4 px-4 py-2 bg-slate-50 border border-slate-200 rounded-full focus:ring-2 focus:ring-purple-500 outline-none text-sm font-medium"
                     placeholder="Ex: 500mg"
                     value={formData.dosage}
                     onChange={e => setFormData({...formData, dosage: e.target.value})}
                   />
-                  <label className="col-span-2 text-[11px] font-bold text-slate-500 uppercase text-right pr-4">Reg. Sanit.:</label>
+                  <label className="md:col-span-2 text-[11px] font-bold text-slate-500 uppercase md:text-right md:pr-4">Reg. Sanit.:</label>
                   <input 
                     type="text" 
-                    className="col-span-3 px-4 py-2 bg-slate-50 border border-slate-200 rounded-full focus:ring-2 focus:ring-purple-500 outline-none text-sm font-medium"
+                    className="w-full md:col-span-3 px-4 py-2 bg-slate-50 border border-slate-200 rounded-full focus:ring-2 focus:ring-purple-500 outline-none text-sm font-medium"
                     placeholder="Registro"
                     value={formData.sanitaryRegistry}
                     onChange={e => setFormData({...formData, sanitaryRegistry: e.target.value})}
                   />
                 </div>
 
-                <div className="grid grid-cols-12 gap-4 items-center">
-                  <label className="col-span-3 text-[11px] font-bold text-slate-500 uppercase text-right pr-4">Fabricante:</label>
+                <div className="flex flex-col md:grid md:grid-cols-12 gap-2 md:gap-4 items-start md:items-center">
+                  <label className="md:col-span-3 text-[11px] font-bold text-slate-500 uppercase md:text-right md:pr-4">Fabricante:</label>
                   <input 
                     type="text" 
-                    className="col-span-9 px-4 py-2 bg-slate-50 border border-slate-200 rounded-full focus:ring-2 focus:ring-purple-500 outline-none text-sm font-medium"
+                    className="w-full md:col-span-9 px-4 py-2 bg-slate-50 border border-slate-200 rounded-full focus:ring-2 focus:ring-purple-500 outline-none text-sm font-medium"
                     placeholder="Laboratório / Fabricante"
                     value={formData.manufacturer}
                     onChange={e => setFormData({...formData, manufacturer: e.target.value})}
                   />
                 </div>
 
-                <div className="grid grid-cols-12 gap-4 items-center">
-                  <label className="col-span-3 text-[11px] font-bold text-slate-500 uppercase text-right pr-4">Custo:</label>
-                  <div className="col-span-4 relative">
+                <div className="flex flex-col md:grid md:grid-cols-12 gap-2 md:gap-4 items-start md:items-center">
+                  <label className="md:col-span-3 text-[11px] font-bold text-slate-500 uppercase md:text-right md:pr-4">Custo:</label>
+                  <div className="w-full md:col-span-4 relative">
                     <input 
                       type="text" 
                       className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-full focus:ring-2 focus:ring-purple-500 outline-none text-sm font-medium"
@@ -485,20 +485,20 @@ const StockManagement: React.FC<StockManagementProps> = ({
                       <Calculator size={14} />
                     </button>
                   </div>
-                  <label className="col-span-2 text-[11px] font-bold text-slate-500 uppercase text-right pr-4">Preço:</label>
+                  <label className="md:col-span-2 text-[11px] font-bold text-slate-500 uppercase md:text-right md:pr-4">Preço:</label>
                   <input 
                     type="text" 
-                    className="col-span-3 px-4 py-2 bg-slate-50 border border-slate-200 rounded-full focus:ring-2 focus:ring-purple-500 outline-none text-sm font-medium"
+                    className="w-full md:col-span-3 px-4 py-2 bg-slate-50 border border-slate-200 rounded-full focus:ring-2 focus:ring-purple-500 outline-none text-sm font-medium"
                     placeholder="Preço"
                     value={formData.price}
                     onChange={e => setFormData({...formData, price: e.target.value})}
                   />
                 </div>
 
-                <div className="grid grid-cols-12 gap-4 items-center">
-                  <label className="col-span-3 text-[11px] font-bold text-slate-500 uppercase text-right pr-4">Unidade:</label>
+                <div className="flex flex-col md:grid md:grid-cols-12 gap-2 md:gap-4 items-start md:items-center">
+                  <label className="md:col-span-3 text-[11px] font-bold text-slate-500 uppercase md:text-right md:pr-4">Unidade:</label>
                   <select 
-                    className="col-span-4 px-4 py-2 bg-slate-50 border border-slate-200 rounded-full focus:ring-2 focus:ring-purple-500 outline-none text-sm font-medium appearance-none"
+                    className="w-full md:col-span-4 px-4 py-2 bg-slate-50 border border-slate-200 rounded-full focus:ring-2 focus:ring-purple-500 outline-none text-sm font-medium appearance-none"
                     value={formData.unit}
                     onChange={e => setFormData({...formData, unit: e.target.value})}
                   >
@@ -506,20 +506,20 @@ const StockManagement: React.FC<StockManagementProps> = ({
                     <option value="CX">CAIXA</option>
                     <option value="FR">FRASCO</option>
                   </select>
-                  <label className="col-span-2 text-[11px] font-bold text-slate-500 uppercase text-right pr-4">Estoque:</label>
+                  <label className="md:col-span-2 text-[11px] font-bold text-slate-500 uppercase md:text-right md:pr-4">Estoque:</label>
                   <input 
                     disabled
                     type="text" 
-                    className="col-span-3 px-4 py-2 bg-slate-100 border border-slate-200 rounded-full text-sm font-bold text-slate-500"
+                    className="w-full md:col-span-3 px-4 py-2 bg-slate-100 border border-slate-200 rounded-full text-sm font-bold text-slate-500"
                     placeholder="Estoque"
                     value={formData.stock}
                   />
                 </div>
 
-                <div className="grid grid-cols-12 gap-4 items-center">
-                  <label className="col-span-3 text-[11px] font-bold text-slate-500 uppercase text-right pr-4">Categoria:</label>
+                <div className="flex flex-col md:grid md:grid-cols-12 gap-2 md:gap-4 items-start md:items-center">
+                  <label className="md:col-span-3 text-[11px] font-bold text-slate-500 uppercase md:text-right md:pr-4">Categoria:</label>
                   <select 
-                    className="col-span-9 px-4 py-2 bg-slate-50 border border-slate-200 rounded-full focus:ring-2 focus:ring-purple-500 outline-none text-sm font-medium appearance-none"
+                    className="w-full md:col-span-9 px-4 py-2 bg-slate-50 border border-slate-200 rounded-full focus:ring-2 focus:ring-purple-500 outline-none text-sm font-medium appearance-none"
                     value={formData.category}
                     onChange={e => setFormData({...formData, category: e.target.value as MedicineCategory})}
                   >
@@ -527,22 +527,22 @@ const StockManagement: React.FC<StockManagementProps> = ({
                   </select>
                 </div>
 
-                <div className="grid grid-cols-12 gap-4 items-center">
-                  <label className="col-span-3 text-[11px] font-bold text-slate-500 uppercase text-right pr-4">Cód.Barras:</label>
+                <div className="flex flex-col md:grid md:grid-cols-12 gap-2 md:gap-4 items-start md:items-center">
+                  <label className="md:col-span-3 text-[11px] font-bold text-slate-500 uppercase md:text-right md:pr-4">Cód.Barras:</label>
                   <input 
                     type="text" 
-                    className="col-span-9 px-4 py-2 bg-slate-50 border border-slate-200 rounded-full focus:ring-2 focus:ring-purple-500 outline-none text-sm font-medium"
+                    className="w-full md:col-span-9 px-4 py-2 bg-slate-50 border border-slate-200 rounded-full focus:ring-2 focus:ring-purple-500 outline-none text-sm font-medium"
                     placeholder="Código de barras"
                     value={formData.barcode}
                     onChange={e => setFormData({...formData, barcode: e.target.value})}
                   />
                 </div>
 
-                <div className="grid grid-cols-12 gap-4 items-center">
-                  <label className="col-span-3 text-[11px] font-bold text-slate-500 uppercase text-right pr-4">Localização:</label>
+                <div className="flex flex-col md:grid md:grid-cols-12 gap-2 md:gap-4 items-start md:items-center">
+                  <label className="md:col-span-3 text-[11px] font-bold text-slate-500 uppercase md:text-right md:pr-4">Localização:</label>
                   <input 
                     type="text" 
-                    className="col-span-9 px-4 py-2 bg-slate-50 border border-slate-200 rounded-full focus:ring-2 focus:ring-purple-500 outline-none text-sm font-medium"
+                    className="w-full md:col-span-9 px-4 py-2 bg-slate-50 border border-slate-200 rounded-full focus:ring-2 focus:ring-purple-500 outline-none text-sm font-medium"
                     placeholder="Localização do estoque"
                     value={formData.location}
                     onChange={e => setFormData({...formData, location: e.target.value})}

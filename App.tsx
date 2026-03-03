@@ -18,6 +18,7 @@ const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [currentView, setCurrentView] = useState<ViewType>('dashboard');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [preSelectedProductId, setPreSelectedProductId] = useState<string | undefined>(undefined);
   const [products, setProducts] = useState<Product[]>(MOCK_PRODUCTS);
   const [sales, setSales] = useState<Sale[]>(MOCK_SALES);
@@ -446,17 +447,30 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className="min-h-screen bg-slate-50 flex flex-col lg:flex-row">
       <Sidebar 
         currentView={currentView} 
-        setView={setCurrentView} 
+        setView={(view) => {
+          setCurrentView(view);
+          setIsSidebarOpen(false);
+        }} 
         user={currentUser} 
         onLogout={handleLogout}
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
       />
       
-      <main className="flex-1 ml-64 min-h-screen p-8 lg:p-12 transition-all">
+      <main className={`flex-1 min-h-screen p-4 md:p-8 lg:p-12 transition-all ${isAuthenticated ? 'lg:ml-64' : ''}`}>
         <header className="mb-8 flex justify-between items-center">
           <div className="flex items-center gap-4">
+             {isAuthenticated && (
+               <button 
+                 onClick={() => setIsSidebarOpen(true)}
+                 className="lg:hidden p-2 bg-white rounded-xl shadow-sm border border-slate-200 text-slate-600"
+               >
+                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+               </button>
+             )}
              <div>
                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">GUIFARMA SA / {currentView}</p>
              </div>
