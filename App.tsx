@@ -47,11 +47,35 @@ const App: React.FC = () => {
   }, [users]);
 
   const handleLogin = async (email: string, pass: string) => {
-    // Simulação da lógica que seria processada pelo login.php
+    try {
+      // Tentar login real via PHP
+      const response = await fetch('./login.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password: pass })
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        localStorage.setItem('medstock_session', 'active');
+        localStorage.setItem('medstock_user_id', data.user.id);
+        setIsAuthenticated(true);
+        setCurrentUser({
+          ...data.user,
+          employeeName: data.user.name,
+          permissions: DEFAULT_PERMISSIONS // Em produção, viria do banco
+        });
+        return true;
+      }
+    } catch (error) {
+      console.log('Backend PHP não detectado, usando simulação...');
+    }
+
+    // Simulação da lógica (Fallback para desenvolvimento sem PHP)
     return new Promise<boolean>((resolve) => {
       setTimeout(() => {
         const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-        // Aceita 'admin' ou 'admin123' para facilitar o teste inicial
         const isValid = user && (pass === 'admin' || pass === 'admin123');
         
         if (isValid) {
