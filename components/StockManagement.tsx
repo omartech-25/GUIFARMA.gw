@@ -1,13 +1,14 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { Search, Plus, Filter, ChevronRight, Package, Calendar, ShoppingCart, X, CheckCircle2, ThermometerSnowflake, MapPin, Save, Trash2, Image as ImageIcon, Calculator, History, ArrowLeftRight, AlertCircle, AlertTriangle } from 'lucide-react';
-import { Product, Batch, MedicineCategory, PharmaceuticalForm, Sale, Purchase } from '../types';
+import { Product, Batch, MedicineCategory, PharmaceuticalForm, Sale, Purchase, User, UserRole } from '../types';
 import { formatCurrency } from '../constants';
 
 interface StockManagementProps {
   products: Product[];
   sales?: Sale[];
   purchases?: Purchase[];
+  currentUser?: User | null;
   onUpdateProduct?: (updatedProduct: Product) => void;
   onAddProduct?: (newProduct: Product) => void;
   onDeleteProduct?: (productId: string) => void;
@@ -21,6 +22,7 @@ const StockManagement: React.FC<StockManagementProps> = ({
   products, 
   sales = [], 
   purchases = [], 
+  currentUser,
   onUpdateProduct, 
   onAddProduct, 
   onDeleteProduct,
@@ -32,6 +34,10 @@ const StockManagement: React.FC<StockManagementProps> = ({
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [successToast, setSuccessToast] = useState<{ show: boolean; message: string } | null>(null);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [isImageUrlModalOpen, setIsImageUrlModalOpen] = useState(false);
+  const [imageUrlInput, setImageUrlInput] = useState('');
 
   const [formData, setFormData] = useState({
     code: '',
@@ -50,6 +56,7 @@ const StockManagement: React.FC<StockManagementProps> = ({
     minStock: '10',
     maxStock: '100',
     batch: '',
+    expiryDate: '',
     imageUrl: ''
   });
 
@@ -68,28 +75,30 @@ const StockManagement: React.FC<StockManagementProps> = ({
 
   useEffect(() => {
     if (selectedProduct) {
-      const totalStock = selectedProduct.batches.reduce((sum, b) => sum + b.quantity, 0);
-      const avgCost = selectedProduct.batches.length > 0 
-        ? selectedProduct.batches.reduce((sum, b) => sum + b.purchasePrice, 0) / selectedProduct.batches.length 
+      const batches = selectedProduct.batches || [];
+      const totalStock = batches.reduce((sum, b) => sum + (b.quantity || 0), 0);
+      const avgCost = batches.length > 0 
+        ? batches.reduce((sum, b) => sum + (b.purchasePrice || 0), 0) / batches.length 
         : 0;
 
       setFormData({
-        code: selectedProduct.code,
-        name: selectedProduct.name,
+        code: selectedProduct.code || '',
+        name: selectedProduct.name || '',
         genericName: selectedProduct.genericName || '',
         dosage: selectedProduct.dosage || '',
         manufacturer: selectedProduct.manufacturer || '',
         sanitaryRegistry: selectedProduct.sanitaryRegistry || '',
-        cost: avgCost.toString(),
-        price: selectedProduct.sellingPriceWholesale.toString(),
-        unit: selectedProduct.pharmaceuticalForm,
-        stock: totalStock.toString(),
-        category: selectedProduct.category,
+        cost: (avgCost || 0).toString(),
+        price: (selectedProduct.sellingPriceWholesale || 0).toString(),
+        unit: selectedProduct.pharmaceuticalForm || 'UN',
+        stock: (totalStock || 0).toString(),
+        category: selectedProduct.category || MedicineCategory.OTHER,
         barcode: selectedProduct.barcode || '',
-        location: selectedProduct.batches[0]?.location || '',
-        minStock: selectedProduct.minStockAlert.toString(),
-        maxStock: selectedProduct.maxStockAlert?.toString() || '100',
-        batch: selectedProduct.batches[0]?.batchNumber || '',
+        location: batches[0]?.location || '',
+        minStock: (selectedProduct.minStockAlert || 0).toString(),
+        maxStock: (selectedProduct.maxStockAlert || 100).toString(),
+        batch: batches[0]?.batchNumber || '',
+        expiryDate: batches[0]?.expiryDate || '',
         imageUrl: selectedProduct.imageUrl || ''
       });
     } else {
@@ -110,6 +119,7 @@ const StockManagement: React.FC<StockManagementProps> = ({
         minStock: '10',
         maxStock: '100',
         batch: '',
+        expiryDate: '',
         imageUrl: ''
       });
     }
@@ -122,6 +132,43 @@ const StockManagement: React.FC<StockManagementProps> = ({
     }
   }, [successToast]);
 
+  const handleRemoveBatch = (productId: string, batchId: string) => {
+    const product = products.find(p => p.id === productId);
+    if (product && onUpdateProduct) {
+      onUpdateProduct({
+        ...product,
+        batches: product.batches.filter(b => b.id !== batchId)
+      });
+      setSuccessToast({ show: true, message: 'Lote removido com sucesso!' });
+    }
+  };
+
+  const handleRemoveAllExpired = () => {
+    if (!onUpdateProduct) return;
+    
+    const now = new Date();
+    let totalRemoved = 0;
+    
+    // We need to be careful with multiple onUpdateProduct calls if they are not batched
+    // But in this architecture it's usually fine as it's a local state update passed up
+    products.forEach(product => {
+      const validBatches = product.batches.filter(b => new Date(b.expiryDate) >= now);
+      if (validBatches.length !== product.batches.length) {
+        totalRemoved += (product.batches.length - validBatches.length);
+        onUpdateProduct({
+          ...product,
+          batches: validBatches
+        });
+      }
+    });
+    
+    if (totalRemoved > 0) {
+      setSuccessToast({ show: true, message: `${totalRemoved} lotes vencidos removidos com sucesso!` });
+    } else {
+      setSuccessToast({ show: true, message: 'Nenhum lote vencido encontrado.' });
+    }
+  };
+
   const filteredProducts = products.filter(p => 
     p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     p.genericName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -129,8 +176,8 @@ const StockManagement: React.FC<StockManagementProps> = ({
     p.batches.some(b => b.batchNumber.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSave = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!onUpdateProduct && !onAddProduct) return;
 
     const productData: Partial<Product> = {
@@ -150,7 +197,37 @@ const StockManagement: React.FC<StockManagementProps> = ({
     };
 
     if (selectedProduct) {
-      onUpdateProduct?.({ ...selectedProduct, ...productData } as Product);
+      const updatedBatches = [...selectedProduct.batches];
+      const newStock = parseInt(formData.stock) || 0;
+      const currentStock = selectedProduct.batches.reduce((sum, b) => sum + b.quantity, 0);
+
+      if (newStock !== currentStock) {
+        if (updatedBatches.length > 0) {
+          // Adjust the first batch to reflect the new total stock and expiry date
+          updatedBatches[0] = { 
+            ...updatedBatches[0], 
+            quantity: newStock,
+            expiryDate: formData.expiryDate || updatedBatches[0].expiryDate
+          };
+        } else if (newStock > 0) {
+          updatedBatches.push({
+            id: `b-${Date.now()}`,
+            batchNumber: formData.batch || 'INICIAL',
+            manufacturerBatchNumber: formData.batch || 'INICIAL',
+            manufacturingDate: new Date().toISOString().split('T')[0],
+            expiryDate: formData.expiryDate || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            quantity: newStock,
+            purchasePrice: parseFloat(formData.cost) || 0,
+            location: formData.location,
+            isColdChain: false
+          });
+        }
+      } else if (updatedBatches.length > 0 && formData.expiryDate !== updatedBatches[0].expiryDate) {
+        // Even if stock is same, update expiry date if changed
+        updatedBatches[0] = { ...updatedBatches[0], expiryDate: formData.expiryDate };
+      }
+
+      onUpdateProduct?.({ ...selectedProduct, ...productData, batches: updatedBatches } as Product);
       setSuccessToast({ show: true, message: 'Produto atualizado com sucesso!' });
     } else {
       const newProduct: Product = {
@@ -161,7 +238,7 @@ const StockManagement: React.FC<StockManagementProps> = ({
           batchNumber: formData.batch,
           manufacturerBatchNumber: formData.batch,
           manufacturingDate: new Date().toISOString().split('T')[0],
-          expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          expiryDate: formData.expiryDate || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
           quantity: parseInt(formData.stock) || 0,
           purchasePrice: parseFloat(formData.cost) || 0,
           location: formData.location,
@@ -182,12 +259,29 @@ const StockManagement: React.FC<StockManagementProps> = ({
 
   const handleDelete = () => {
     if (selectedProduct && onDeleteProduct) {
-      if (window.confirm(`Tem certeza que deseja excluir o produto ${selectedProduct.name}?`)) {
-        onDeleteProduct(selectedProduct.id);
-        setSelectedProduct(products[0] || null);
-        setSuccessToast({ show: true, message: 'Produto excluído com sucesso!' });
-      }
+      setProductToDelete(selectedProduct);
+      setIsDeleteConfirmOpen(true);
     }
+  };
+
+  const confirmDelete = () => {
+    if (productToDelete && onDeleteProduct) {
+      onDeleteProduct(productToDelete.id);
+      setSelectedProduct(products[0] || null);
+      setSuccessToast({ show: true, message: 'Produto excluído com sucesso!' });
+      setIsDeleteConfirmOpen(false);
+      setProductToDelete(null);
+    }
+  };
+
+  const handleImageUpload = () => {
+    setImageUrlInput(formData.imageUrl || '');
+    setIsImageUrlModalOpen(true);
+  };
+
+  const saveImageUrl = () => {
+    setFormData({ ...formData, imageUrl: imageUrlInput });
+    setIsImageUrlModalOpen(false);
   };
 
   const productSales = useMemo(() => {
@@ -267,23 +361,69 @@ const StockManagement: React.FC<StockManagementProps> = ({
     setActiveTab('purchases_history');
   };
 
-  const handleImageUpload = () => {
-    const url = window.prompt('Insira a URL da imagem do produto:');
-    if (url) {
-      setFormData({ ...formData, imageUrl: url });
-    }
-  };
-
   return (
     <div className="min-h-screen bg-[#F3F4F6] p-4 md:p-8 animate-fadeIn">
       {/* Header with Title */}
       <div className="max-w-6xl mx-auto mb-6">
         <div className="bg-[#9333EA] text-white py-2 px-6 rounded-t-xl flex justify-between items-center shadow-lg">
           <h1 className="text-sm font-bold uppercase tracking-widest">Produtos</h1>
-          <div className="flex gap-1">
-            <div className="w-3 h-3 rounded-full bg-red-400"></div>
-            <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
-            <div className="w-3 h-3 rounded-full bg-green-400"></div>
+        </div>
+
+        {/* Toolbar */}
+        <div className="bg-white border-x border-slate-200 p-4 flex flex-wrap gap-4 items-center shadow-sm">
+          <div className="flex gap-2">
+            <button 
+              onClick={handleNew}
+              className="bg-amber-500 text-white px-6 py-2 rounded-full font-bold text-[10px] uppercase tracking-widest flex items-center gap-2 hover:bg-amber-600 transition-all shadow-md"
+            >
+              <Plus size={16} />
+              Novo
+            </button>
+            <button 
+              onClick={() => setIsSearchModalOpen(true)}
+              className="bg-amber-500 text-white px-6 py-2 rounded-full font-bold text-[10px] uppercase tracking-widest flex items-center gap-2 hover:bg-amber-600 transition-all shadow-md"
+            >
+              <Search size={16} />
+              Localizar
+            </button>
+            <button 
+              onClick={() => setActiveTab('purchases')}
+              disabled={!selectedProduct}
+              className="bg-blue-600 text-white px-6 py-2 rounded-full font-bold text-[10px] uppercase tracking-widest flex items-center gap-2 hover:bg-blue-700 transition-all shadow-md disabled:opacity-50"
+            >
+              <Plus size={16} />
+              Entrada
+            </button>
+          </div>
+          
+          {/* Search Bar in Toolbar */}
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            <input 
+              type="text" 
+              placeholder="Pesquisar..." 
+              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-full focus:ring-2 focus:ring-amber-500 outline-none text-[10px] font-bold uppercase tracking-wider"
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+            />
+          </div>
+          
+          <div className="flex gap-2">
+            <button 
+              onClick={() => handleSave()}
+              className="bg-amber-500 text-white px-6 py-2 rounded-full font-bold text-[10px] uppercase tracking-widest flex items-center gap-2 hover:bg-amber-600 transition-all shadow-md"
+            >
+              <Save size={16} />
+              Salvar
+            </button>
+            <button 
+              onClick={handleDelete}
+              disabled={!selectedProduct}
+              className="bg-slate-200 text-slate-600 px-6 py-2 rounded-full font-bold text-[10px] uppercase tracking-widest flex items-center gap-2 hover:bg-slate-300 transition-all shadow-md disabled:opacity-50"
+            >
+              <Trash2 size={16} />
+              Excluir
+            </button>
           </div>
         </div>
 
@@ -315,17 +455,7 @@ const StockManagement: React.FC<StockManagementProps> = ({
         <div className="bg-white border border-slate-200 rounded-b-xl shadow-xl p-4 md:p-8 min-h-[600px]">
           {activeTab === 'inventory' && (
             <div className="space-y-6">
-              <div className="flex flex-col md:flex-row gap-4 justify-between items-center mb-6">
-                <div className="relative flex-1 max-w-md w-full">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                  <input 
-                    type="text" 
-                    placeholder="Pesquisar no inventário..." 
-                    className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-purple-500 outline-none transition-all"
-                    value={searchTerm}
-                    onChange={e => setSearchTerm(e.target.value)}
-                  />
-                </div>
+              <div className="flex flex-col md:flex-row gap-4 justify-end items-center mb-6">
                 <div className="flex flex-wrap gap-2">
                   <div className="flex items-center gap-2 px-4 py-2 bg-amber-50 text-amber-700 rounded-xl border border-amber-100">
                     <AlertCircle size={16} />
@@ -335,6 +465,13 @@ const StockManagement: React.FC<StockManagementProps> = ({
                     <AlertTriangle size={16} className="animate-pulse" />
                     <span className="text-[10px] font-black uppercase">Vencidos/Próx: {products.filter(p => p.batches.some(b => new Date(b.expiryDate) < new Date(Date.now() + 90 * 24 * 60 * 60 * 1000))).length}</span>
                   </div>
+                  <button 
+                    onClick={handleRemoveAllExpired}
+                    className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all shadow-md"
+                  >
+                    <Trash2 size={16} />
+                    <span className="text-[10px] font-black uppercase">Limpar Vencidos</span>
+                  </button>
                 </div>
               </div>
 
@@ -369,15 +506,34 @@ const StockManagement: React.FC<StockManagementProps> = ({
                             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Estoque Total</p>
                             <p className={`text-sm font-black ${isLowStock ? 'text-amber-600' : 'text-slate-900'}`}>{totalStock} un</p>
                           </div>
-                          <button 
-                            onClick={() => {
-                              setSelectedProduct(product);
-                              setActiveTab('details');
-                            }}
-                            className="p-2 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-purple-600 hover:border-purple-200 transition-all"
-                          >
-                            <ChevronRight size={20} />
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button 
+                              onClick={() => onStartSale?.(product.id)}
+                              className="p-2 bg-emerald-50 border border-emerald-100 rounded-xl text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all shadow-sm"
+                              title="Vender este produto"
+                            >
+                              <ShoppingCart size={20} />
+                            </button>
+                            <button 
+                              onClick={() => {
+                                setSelectedProduct(product);
+                                setActiveTab('purchases');
+                              }}
+                              className="p-2 bg-blue-50 border border-blue-100 rounded-xl text-blue-600 hover:bg-blue-600 hover:text-white transition-all shadow-sm"
+                              title="Entrada de estoque"
+                            >
+                              <Plus size={20} />
+                            </button>
+                            <button 
+                              onClick={() => {
+                                setSelectedProduct(product);
+                                setActiveTab('details');
+                              }}
+                              className="p-2 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-purple-600 hover:border-purple-200 transition-all"
+                            >
+                              <ChevronRight size={20} />
+                            </button>
+                          </div>
                         </div>
                       </div>
                       
@@ -412,11 +568,20 @@ const StockManagement: React.FC<StockManagementProps> = ({
                                         </div>
                                       )}
                                     </div>
-                                    {batch.isColdChain && (
-                                      <div className="text-blue-500">
-                                        <ThermometerSnowflake size={14} />
-                                      </div>
-                                    )}
+                                    <div className="flex items-center gap-1">
+                                      {batch.isColdChain && (
+                                        <div className="text-blue-500">
+                                          <ThermometerSnowflake size={14} />
+                                        </div>
+                                      )}
+                                      <button 
+                                        onClick={() => handleRemoveBatch(product.id, batch.id)}
+                                        className="p-1 text-slate-300 hover:text-red-500 transition-colors"
+                                        title="Remover este lote"
+                                      >
+                                        <Trash2 size={14} />
+                                      </button>
+                                    </div>
                                   </div>
                                   <div className="space-y-2">
                                     <div className="flex justify-between items-center">
@@ -472,6 +637,24 @@ const StockManagement: React.FC<StockManagementProps> = ({
                     placeholder="Lote"
                     value={formData.batch}
                     onChange={e => setFormData({...formData, batch: e.target.value})}
+                  />
+                </div>
+
+                <div className="flex flex-col md:grid md:grid-cols-12 gap-2 md:gap-4 items-start md:items-center">
+                  <label className="md:col-span-3 text-[11px] font-bold text-slate-500 uppercase md:text-right md:pr-4">Nome do Produto:</label>
+                  <input 
+                    type="text" 
+                    className="w-full md:col-span-4 px-4 py-2 bg-slate-50 border border-slate-200 rounded-full focus:ring-2 focus:ring-purple-500 outline-none text-sm font-medium"
+                    placeholder="Nome comercial"
+                    value={formData.name}
+                    onChange={e => setFormData({...formData, name: e.target.value})}
+                  />
+                  <label className="md:col-span-2 text-[11px] font-bold text-slate-500 uppercase md:text-right md:pr-4">Validade:</label>
+                  <input 
+                    type="date" 
+                    className="w-full md:col-span-3 px-4 py-2 bg-slate-50 border border-slate-200 rounded-full focus:ring-2 focus:ring-purple-500 outline-none text-sm font-medium"
+                    value={formData.expiryDate}
+                    onChange={e => setFormData({...formData, expiryDate: e.target.value})}
                   />
                 </div>
 
@@ -553,11 +736,11 @@ const StockManagement: React.FC<StockManagementProps> = ({
                   </select>
                   <label className="md:col-span-2 text-[11px] font-bold text-slate-500 uppercase md:text-right md:pr-4">Estoque:</label>
                   <input 
-                    disabled
                     type="text" 
-                    className="w-full md:col-span-3 px-4 py-2 bg-slate-100 border border-slate-200 rounded-full text-sm font-bold text-slate-500"
+                    className="w-full md:col-span-3 px-4 py-2 bg-slate-50 border border-slate-200 rounded-full focus:ring-2 focus:ring-purple-500 outline-none text-sm font-bold text-slate-900"
                     placeholder="Estoque"
                     value={formData.stock}
+                    onChange={e => setFormData({...formData, stock: e.target.value})}
                   />
                 </div>
 
@@ -751,6 +934,12 @@ const StockManagement: React.FC<StockManagementProps> = ({
                       className="col-span-8 px-4 py-2 bg-slate-50 border border-slate-200 rounded-full text-sm outline-none focus:ring-2 focus:ring-purple-500 font-bold"
                       value={purchaseFormData.quantity}
                       onChange={e => setPurchaseFormData({...purchaseFormData, quantity: e.target.value})}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' || e.key === '+' || e.key === 'Add') {
+                          e.preventDefault();
+                          handlePurchaseSubmit(e as any);
+                        }
+                      }}
                     />
                   </div>
                   <div className="grid grid-cols-12 gap-4 items-center">
@@ -762,6 +951,12 @@ const StockManagement: React.FC<StockManagementProps> = ({
                       className="col-span-8 px-4 py-2 bg-slate-50 border border-slate-200 rounded-full text-sm outline-none focus:ring-2 focus:ring-purple-500 font-bold text-emerald-600"
                       value={purchaseFormData.purchasePrice}
                       onChange={e => setPurchaseFormData({...purchaseFormData, purchasePrice: e.target.value})}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' || e.key === '+' || e.key === 'Add') {
+                          e.preventDefault();
+                          handlePurchaseSubmit(e as any);
+                        }
+                      }}
                     />
                   </div>
                   <div className="grid grid-cols-12 gap-4 items-center">
@@ -843,44 +1038,6 @@ const StockManagement: React.FC<StockManagementProps> = ({
             </div>
           )}
         </div>
-
-        {/* Bottom Action Bar */}
-        <div className="bg-[#F9FAFB] border-x border-b border-slate-200 rounded-b-xl p-6 flex flex-wrap gap-4 items-center justify-between shadow-inner">
-          <div className="flex gap-4">
-            <button 
-              onClick={handleNew}
-              className="flex items-center gap-3 bg-amber-500 text-white px-8 py-3 rounded-2xl shadow-lg hover:bg-amber-600 transition-all font-black text-xs uppercase tracking-widest"
-            >
-              <Plus size={18} />
-              Novo
-            </button>
-            <button 
-              onClick={() => setIsSearchModalOpen(true)}
-              className="flex items-center gap-3 bg-amber-500 text-white px-8 py-3 rounded-2xl shadow-lg hover:bg-amber-600 transition-all font-black text-xs uppercase tracking-widest"
-            >
-              <Search size={18} />
-              Localizar
-            </button>
-          </div>
-
-          <div className="flex gap-4">
-            <button 
-              onClick={handleSave}
-              className="flex items-center gap-3 bg-amber-500 text-white px-12 py-3 rounded-2xl shadow-lg hover:bg-amber-600 transition-all font-black text-xs uppercase tracking-widest"
-            >
-              <Save size={18} />
-              Salvar
-            </button>
-            <button 
-              onClick={handleDelete}
-              disabled={!selectedProduct}
-              className="flex items-center gap-3 bg-slate-300 text-slate-500 px-8 py-3 rounded-2xl shadow-lg hover:bg-red-500 hover:text-white transition-all font-black text-xs uppercase tracking-widest disabled:opacity-50 disabled:hover:bg-slate-300 disabled:hover:text-slate-500"
-            >
-              <Trash2 size={18} />
-              Excluir
-            </button>
-          </div>
-        </div>
       </div>
 
       {/* Search Modal (LOCALIZAR) */}
@@ -947,6 +1104,72 @@ const StockManagement: React.FC<StockManagementProps> = ({
             <div>
               <p className="font-black text-sm uppercase tracking-tighter">SUCESSO</p>
               <p className="text-emerald-50 text-xs">{successToast.message}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {isDeleteConfirmOpen && productToDelete && (
+        <div className="fixed inset-0 z-[400] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fadeIn">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 animate-slideUp">
+            <div className="w-16 h-16 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center mb-6 mx-auto">
+              <Trash2 size={32} />
+            </div>
+            <h3 className="text-xl font-bold text-slate-900 text-center mb-2">Excluir Produto</h3>
+            <p className="text-slate-500 text-center mb-8">
+              Tem certeza que deseja excluir o produto <span className="font-bold text-slate-800">{productToDelete.name}</span>? Esta ação não pode ser desfeita.
+            </p>
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setIsDeleteConfirmOpen(false)}
+                className="flex-1 px-6 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-all"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={confirmDelete}
+                className="flex-1 px-6 py-3 bg-red-500 text-white rounded-xl font-bold hover:bg-red-600 transition-all shadow-lg shadow-red-100"
+              >
+                Excluir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Image URL Modal */}
+      {isImageUrlModalOpen && (
+        <div className="fixed inset-0 z-[400] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fadeIn">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 animate-slideUp">
+            <div className="w-16 h-16 bg-blue-50 text-blue-500 rounded-2xl flex items-center justify-center mb-6 mx-auto">
+              <ImageIcon size={32} />
+            </div>
+            <h3 className="text-xl font-bold text-slate-900 text-center mb-2">URL da Imagem</h3>
+            <p className="text-slate-500 text-center mb-6 text-sm">
+              Insira a URL da imagem para o produto <span className="font-bold text-slate-800">{formData.name || 'Novo Produto'}</span>.
+            </p>
+            <input 
+              type="text" 
+              className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none mb-8"
+              placeholder="https://exemplo.com/imagem.jpg"
+              value={imageUrlInput}
+              onChange={e => setImageUrlInput(e.target.value)}
+              autoFocus
+            />
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setIsImageUrlModalOpen(false)}
+                className="flex-1 px-6 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-all"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={saveImageUrl}
+                className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100"
+              >
+                Salvar
+              </button>
             </div>
           </div>
         </div>

@@ -47,6 +47,7 @@ export interface User {
   employeeName: string;
   role: UserRole;
   email: string;
+  password?: string;
   permissions: UserPermissions;
 }
 
@@ -240,4 +241,32 @@ export interface CashSession extends AuditInfo {
   status: 'Aberto' | 'Fechado';
 }
 
-export type ViewType = 'dashboard' | 'stock' | 'sales' | 'clients' | 'reports' | 'users' | 'purchases' | 'accounting' | 'cash';
+export enum ActivityType {
+  LOGIN = 'Login',
+  LOGOUT = 'Logout',
+  CREATE = 'Criação',
+  UPDATE = 'Atualização',
+  DELETE = 'Exclusão',
+  SALE = 'Venda',
+  PURCHASE = 'Compra',
+  STOCK_ADJUSTMENT = 'Ajuste de Estoque',
+  CASH_OPEN = 'Abertura de Caixa',
+  CASH_CLOSE = 'Fechamento de Caixa',
+  CREDIT_NOTE = 'Nota de Crédito'
+}
+
+export interface ActivityLog {
+  id: string;
+  timestamp: string;
+  userId: string;
+  userName: string;
+  userRole: UserRole;
+  type: ActivityType;
+  action: string;
+  details?: string;
+  targetId?: string;
+  targetType?: string;
+  ipAddress?: string;
+}
+
+export type ViewType = 'dashboard' | 'stock' | 'sales' | 'clients' | 'reports' | 'users' | 'purchases' | 'accounting' | 'cash' | 'logs';

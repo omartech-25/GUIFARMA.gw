@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Search, Plus, Users, X, Phone, ShieldCheck, MapPin, CheckCircle2 } from 'lucide-react';
+import { Search, Plus, Users, X, Phone, ShieldCheck, MapPin, CheckCircle2, Save, Trash2 } from 'lucide-react';
 import { Client } from '../types';
 import { formatCurrency } from '../constants';
 
@@ -67,35 +67,56 @@ const ClientManagement: React.FC<ClientManagementProps> = ({ clients, onAddClien
   };
 
   return (
-    <div className="space-y-6 animate-fadeIn">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-800">Cadastro de Clientes</h2>
-          <p className="text-slate-500">Gerencie farmácias, hospitais e parcerias.</p>
-        </div>
-        <button 
-          onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 bg-emerald-600 text-white px-6 py-3 rounded-xl shadow-lg hover:bg-emerald-700 transition-all font-bold"
-        >
-          <Plus size={20} />
-          Novo Cliente
-        </button>
+    <div className="space-y-0 animate-fadeIn max-w-6xl mx-auto">
+      <div className="bg-[#10B981] text-white py-2 px-6 rounded-t-xl flex justify-between items-center shadow-lg">
+        <h1 className="text-sm font-bold uppercase tracking-widest">Cadastro de Clientes</h1>
       </div>
 
-      <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-wrap gap-4 items-center">
-        <div className="relative flex-1 min-w-[280px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+      <div className="bg-white border-x border-slate-200 p-4 flex flex-wrap gap-4 items-center shadow-sm">
+        <div className="flex gap-2">
+          <button 
+            onClick={() => setIsModalOpen(true)}
+            className="bg-amber-500 text-white px-6 py-2 rounded-full font-bold text-[10px] uppercase tracking-widest flex items-center gap-2 hover:bg-amber-600 transition-all shadow-md"
+          >
+            <Plus size={16} />
+            Novo
+          </button>
+          <button 
+            className="bg-amber-500 text-white px-6 py-2 rounded-full font-bold text-[10px] uppercase tracking-widest flex items-center gap-2 hover:bg-amber-600 transition-all shadow-md"
+          >
+            <Search size={16} />
+            Localizar
+          </button>
+        </div>
+        
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
           <input 
             type="text" 
-            placeholder="Pesquisar por nome ou contacto..." 
-            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
+            placeholder="Pesquisar..." 
+            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-full focus:ring-2 focus:ring-amber-500 outline-none text-[10px] font-bold uppercase tracking-wider"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
+        
+        <div className="flex gap-2">
+          <button 
+            className="bg-amber-500 text-white px-6 py-2 rounded-full font-bold text-[10px] uppercase tracking-widest flex items-center gap-2 hover:bg-amber-600 transition-all shadow-md"
+          >
+            <Save size={16} />
+            Salvar
+          </button>
+          <button 
+            className="bg-slate-200 text-slate-600 px-6 py-2 rounded-full font-bold text-[10px] uppercase tracking-widest flex items-center gap-2 hover:bg-slate-300 transition-all shadow-md"
+          >
+            <Trash2 size={16} />
+            Excluir
+          </button>
+        </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+      <div className="bg-white rounded-b-xl shadow-xl p-8 min-h-[500px] border border-slate-200">
         <table className="w-full text-left text-sm">
           <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider">
             <tr>

@@ -1,24 +1,30 @@
 
 import React, { useState } from 'react';
-import { Search, Plus, X, Shield, CheckCircle2, ChevronRight, Save, Trash2, Check } from 'lucide-react';
+import { Search, Plus, X, Shield, CheckCircle2, ChevronRight, Save, Trash2, Check, AlertTriangle, Image as ImageIcon } from 'lucide-react';
 import { User, UserRole, UserPermissions } from '../types';
-import { DEFAULT_PERMISSIONS } from '../constants';
+import { DEFAULT_PERMISSIONS, ROLE_PERMISSIONS } from '../constants';
 
 interface UserManagementProps {
   users: User[];
+  currentUser: User | null;
   onAddUser: (user: User) => void;
   onUpdateUser: (user: User) => void;
   onDeleteUser?: (userId: string) => void;
 }
 
-type UserTab = 'details' | 'permissions';
+type UserTab = 'list' | 'details' | 'permissions';
 
-const UserManagement: React.FC<UserManagementProps> = ({ users, onAddUser, onUpdateUser, onDeleteUser }) => {
-  const [activeTab, setActiveTab] = useState<UserTab>('details');
+const UserManagement: React.FC<UserManagementProps> = ({ users, currentUser, onAddUser, onUpdateUser, onDeleteUser }) => {
+  const [activeTab, setActiveTab] = useState<UserTab>('list');
   const [selectedUser, setSelectedUser] = useState<User | null>(users[0] || null);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [successToast, setSuccessToast] = useState<{ show: boolean; message: string } | null>(null);
+  const [errorToast, setErrorToast] = useState<{ show: boolean; message: string } | null>(null);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [isImageUrlModalOpen, setIsImageUrlModalOpen] = useState(false);
+  const [imageUrlInput, setImageUrlInput] = useState('');
 
   const [formData, setFormData] = useState({
     name: '',
@@ -28,7 +34,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, onAddUser, onUpd
     confirmPassword: '',
     role: UserRole.SELLER,
     imageUrl: '',
-    permissions: DEFAULT_PERMISSIONS
+    permissions: ROLE_PERMISSIONS[UserRole.SELLER]
   });
 
   React.useEffect(() => {
@@ -41,7 +47,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, onAddUser, onUpd
         confirmPassword: '',
         role: selectedUser.role,
         imageUrl: '', // Placeholder
-        permissions: selectedUser.permissions || DEFAULT_PERMISSIONS
+        permissions: selectedUser.permissions || ROLE_PERMISSIONS[selectedUser.role]
       });
     } else {
       setFormData({
@@ -52,10 +58,18 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, onAddUser, onUpd
         confirmPassword: '',
         role: UserRole.SELLER,
         imageUrl: '',
-        permissions: DEFAULT_PERMISSIONS
+        permissions: ROLE_PERMISSIONS[UserRole.SELLER]
       });
     }
   }, [selectedUser]);
+
+  const handleRoleChange = (role: UserRole) => {
+    setFormData(prev => ({
+      ...prev,
+      role,
+      permissions: ROLE_PERMISSIONS[role]
+    }));
+  };
 
   React.useEffect(() => {
     if (successToast?.show) {
@@ -64,16 +78,23 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, onAddUser, onUpd
     }
   }, [successToast]);
 
+  React.useEffect(() => {
+    if (errorToast?.show) {
+      const timer = setTimeout(() => setErrorToast(null), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [errorToast]);
+
   const filteredUsers = users.filter(u => 
     u.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     u.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     u.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSave = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (formData.password !== formData.confirmPassword) {
-      alert('As senhas não coincidem!');
+      setErrorToast({ show: true, message: 'As senhas não coincidem!' });
       return;
     }
 
@@ -83,6 +104,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, onAddUser, onUpd
         name: formData.name,
         employeeName: formData.employeeName,
         email: formData.email,
+        password: formData.password || selectedUser.password,
         role: formData.role,
         permissions: formData.permissions
       };
@@ -94,6 +116,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, onAddUser, onUpd
         name: formData.name,
         employeeName: formData.employeeName,
         email: formData.email,
+        password: formData.password,
         role: formData.role,
         permissions: formData.permissions
       };
@@ -109,20 +132,34 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, onAddUser, onUpd
   };
 
   const handleDelete = () => {
+    if (currentUser?.role !== UserRole.ADMIN) {
+      setErrorToast({ show: true, message: 'Apenas administradores podem excluir usuários.' });
+      return;
+    }
     if (selectedUser && onDeleteUser) {
-      if (window.confirm(`Tem certeza que deseja excluir o usuário ${selectedUser.employeeName}?`)) {
-        onDeleteUser(selectedUser.id);
-        setSelectedUser(users[0] || null);
-        setSuccessToast({ show: true, message: 'Usuário excluído com sucesso!' });
-      }
+      setUserToDelete(selectedUser);
+      setIsDeleteConfirmOpen(true);
+    }
+  };
+
+  const confirmDelete = () => {
+    if (userToDelete && onDeleteUser) {
+      onDeleteUser(userToDelete.id);
+      setSelectedUser(users[0] || null);
+      setSuccessToast({ show: true, message: 'Usuário excluído com sucesso!' });
+      setIsDeleteConfirmOpen(false);
+      setUserToDelete(null);
     }
   };
 
   const handleImageUpload = () => {
-    const url = window.prompt('Insira a URL da foto do usuário:');
-    if (url) {
-      setFormData({ ...formData, imageUrl: url });
-    }
+    setImageUrlInput(formData.imageUrl || '');
+    setIsImageUrlModalOpen(true);
+  };
+
+  const saveImageUrl = () => {
+    setFormData({ ...formData, imageUrl: imageUrlInput });
+    setIsImageUrlModalOpen(false);
   };
 
   const handlePermissionChange = (key: keyof UserPermissions) => {
@@ -194,16 +231,62 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, onAddUser, onUpd
         {/* Header */}
         <div className="bg-[#C05A5A] text-white py-2 px-6 rounded-t-xl flex justify-between items-center shadow-lg">
           <h1 className="text-sm font-bold uppercase tracking-widest">Usuários</h1>
-          <div className="flex gap-1">
-            <div className="w-3 h-3 rounded-full bg-red-400"></div>
-            <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
-            <div className="w-3 h-3 rounded-full bg-green-400"></div>
+        </div>
+
+        {/* Toolbar */}
+        <div className="bg-white border-x border-slate-200 p-4 flex flex-wrap gap-4 items-center shadow-sm">
+          <div className="flex gap-2">
+            <button 
+              onClick={handleNew}
+              className="bg-amber-500 text-white px-6 py-2 rounded-full font-bold text-[10px] uppercase tracking-widest flex items-center gap-2 hover:bg-amber-600 transition-all shadow-md"
+            >
+              <Plus size={16} />
+              Novo
+            </button>
+            <button 
+              onClick={() => setIsSearchModalOpen(true)}
+              className="bg-amber-500 text-white px-6 py-2 rounded-full font-bold text-[10px] uppercase tracking-widest flex items-center gap-2 hover:bg-amber-600 transition-all shadow-md"
+            >
+              <Search size={16} />
+              Localizar
+            </button>
+          </div>
+          
+          {/* Search Bar in Toolbar */}
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            <input 
+              type="text" 
+              placeholder="Pesquisar..." 
+              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-full focus:ring-2 focus:ring-amber-500 outline-none text-[10px] font-bold uppercase tracking-wider"
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+            />
+          </div>
+          
+          <div className="flex gap-2">
+            <button 
+              onClick={() => handleSave()}
+              className="bg-amber-500 text-white px-6 py-2 rounded-full font-bold text-[10px] uppercase tracking-widest flex items-center gap-2 hover:bg-amber-600 transition-all shadow-md"
+            >
+              <Save size={16} />
+              Salvar
+            </button>
+            <button 
+              onClick={handleDelete}
+              disabled={!selectedUser}
+              className="bg-slate-200 text-slate-600 px-6 py-2 rounded-full font-bold text-[10px] uppercase tracking-widest flex items-center gap-2 hover:bg-slate-300 transition-all shadow-md disabled:opacity-50"
+            >
+              <Trash2 size={16} />
+              Excluir
+            </button>
           </div>
         </div>
 
         {/* Tabs */}
         <div className="bg-white border-x border-slate-200 flex overflow-x-auto">
           {[
+            { id: 'list', label: 'Lista de Usuários' },
             { id: 'details', label: 'Dados Gerais' },
             { id: 'permissions', label: 'Permissões de Acesso' },
           ].map((tab) => (
@@ -223,6 +306,74 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, onAddUser, onUpd
 
         {/* Main Content */}
         <div className="bg-white border border-slate-200 rounded-b-xl shadow-xl p-8 min-h-[500px]">
+          {activeTab === 'list' && (
+            <div className="space-y-6">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead className="text-[10px] font-black uppercase text-slate-400 border-b border-slate-100">
+                    <tr>
+                      <th className="pb-4 px-4">Usuário</th>
+                      <th className="pb-4 px-4">Login</th>
+                      <th className="pb-4 px-4">Cargo</th>
+                      <th className="pb-4 px-4">Email</th>
+                      <th className="pb-4 px-4 text-right">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-sm">
+                    {filteredUsers.map(user => (
+                      <tr key={user.id} className="border-t border-slate-50 hover:bg-slate-50 transition-colors group">
+                        <td className="py-4 px-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs">
+                              {user.name.slice(0, 2).toUpperCase()}
+                            </div>
+                            <span className="font-bold text-slate-900">{user.employeeName}</span>
+                          </div>
+                        </td>
+                        <td className="py-4 px-4 font-mono text-xs text-slate-500">{user.name}</td>
+                        <td className="py-4 px-4">
+                          <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-[10px] font-bold uppercase">
+                            {user.role}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4 text-slate-500">{user.email}</td>
+                        <td className="py-4 px-4 text-right">
+                          <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button 
+                              onClick={() => {
+                                setSelectedUser(user);
+                                setActiveTab('details');
+                              }}
+                              className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
+                              title="Editar"
+                            >
+                              <ChevronRight size={18} />
+                            </button>
+                            <button 
+                              onClick={() => {
+                                setSelectedUser(user);
+                                handleDelete();
+                              }}
+                              className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Excluir"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {filteredUsers.length === 0 && (
+                      <tr>
+                        <td colSpan={5} className="py-20 text-center text-slate-300 italic">Nenhum usuário encontrado.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
           {activeTab === 'details' && (
             <form onSubmit={handleSave} className="grid grid-cols-1 lg:grid-cols-12 gap-12">
               <div className="lg:col-span-8 space-y-6">
@@ -243,7 +394,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, onAddUser, onUpd
                   <select 
                     className="col-span-8 px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-400 outline-none text-sm font-medium appearance-none"
                     value={formData.role}
-                    onChange={e => setFormData({...formData, role: e.target.value as UserRole})}
+                    onChange={e => handleRoleChange(e.target.value as UserRole)}
                   >
                     {Object.values(UserRole).map(role => <option key={role} value={role}>{role}</option>)}
                   </select>
@@ -342,58 +493,8 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, onAddUser, onUpd
                   </div>
                 ))}
               </div>
-              <div className="flex justify-end">
-                <button 
-                  type="button"
-                  onClick={handleSave}
-                  className="flex items-center gap-4 bg-amber-500 text-white px-16 py-5 rounded-full shadow-2xl hover:bg-amber-600 transition-all font-black text-sm uppercase tracking-widest group"
-                >
-                  <div className="bg-white/20 p-2 rounded-xl group-hover:scale-110 transition-transform">
-                    <Save size={24} />
-                  </div>
-                  Salvar
-                </button>
-              </div>
             </div>
           )}
-        </div>
-
-        {/* Bottom Action Bar */}
-        <div className="bg-[#F9FAFB] border-x border-b border-slate-200 rounded-b-xl p-6 flex flex-wrap gap-4 items-center justify-between shadow-inner">
-          <div className="flex gap-4">
-            <button 
-              onClick={handleNew}
-              className="flex items-center gap-3 bg-amber-500 text-white px-8 py-3 rounded-full shadow-lg hover:bg-amber-600 transition-all font-black text-xs uppercase tracking-widest"
-            >
-              <Plus size={18} />
-              Novo
-            </button>
-            <button 
-              onClick={() => setIsSearchModalOpen(true)}
-              className="flex items-center gap-3 bg-amber-500 text-white px-8 py-3 rounded-full shadow-lg hover:bg-amber-600 transition-all font-black text-xs uppercase tracking-widest"
-            >
-              <Search size={18} />
-              Localizar
-            </button>
-          </div>
-
-          <div className="flex gap-4">
-            <button 
-              onClick={handleSave}
-              className="flex items-center gap-3 bg-amber-500 text-white px-12 py-3 rounded-full shadow-lg hover:bg-amber-600 transition-all font-black text-xs uppercase tracking-widest"
-            >
-              <Save size={18} />
-              Salvar
-            </button>
-            <button 
-              onClick={handleDelete}
-              disabled={!selectedUser}
-              className="flex items-center gap-3 bg-slate-300 text-slate-500 px-8 py-3 rounded-full shadow-lg hover:bg-red-500 hover:text-white transition-all font-black text-xs uppercase tracking-widest disabled:opacity-50 disabled:hover:bg-slate-300 disabled:hover:text-slate-500"
-            >
-              <Trash2 size={18} />
-              Excluir
-            </button>
-          </div>
         </div>
       </div>
 
@@ -455,6 +556,85 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, onAddUser, onUpd
             <div>
               <p className="font-black text-sm uppercase tracking-tighter">SUCESSO</p>
               <p className="text-emerald-50 text-xs">{successToast.message}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Error Toast */}
+      {errorToast?.show && (
+        <div className="fixed bottom-8 right-8 z-[300] animate-slideUp">
+          <div className="bg-red-600 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-4 border-2 border-red-400">
+            <AlertTriangle size={24} />
+            <div>
+              <p className="font-black text-sm uppercase tracking-tighter">ERRO</p>
+              <p className="text-red-50 text-xs">{errorToast.message}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {isDeleteConfirmOpen && userToDelete && (
+        <div className="fixed inset-0 z-[400] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fadeIn">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 animate-slideUp">
+            <div className="w-16 h-16 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center mb-6 mx-auto">
+              <Trash2 size={32} />
+            </div>
+            <h3 className="text-xl font-bold text-slate-900 text-center mb-2">Excluir Usuário</h3>
+            <p className="text-slate-500 text-center mb-8">
+              Tem certeza que deseja excluir o usuário <span className="font-bold text-slate-800">{userToDelete.employeeName}</span>? Esta ação não pode ser desfeita.
+            </p>
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setIsDeleteConfirmOpen(false)}
+                className="flex-1 px-6 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-all"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={confirmDelete}
+                className="flex-1 px-6 py-3 bg-red-500 text-white rounded-xl font-bold hover:bg-red-600 transition-all shadow-lg shadow-red-100"
+              >
+                Excluir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Image URL Modal */}
+      {isImageUrlModalOpen && (
+        <div className="fixed inset-0 z-[400] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fadeIn">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 animate-slideUp">
+            <div className="w-16 h-16 bg-blue-50 text-blue-500 rounded-2xl flex items-center justify-center mb-6 mx-auto">
+              <ImageIcon size={32} />
+            </div>
+            <h3 className="text-xl font-bold text-slate-900 text-center mb-2">Foto do Usuário</h3>
+            <p className="text-slate-500 text-center mb-6 text-sm">
+              Insira a URL da foto para o usuário <span className="font-bold text-slate-800">{formData.employeeName || 'Novo Usuário'}</span>.
+            </p>
+            <input 
+              type="text" 
+              className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none mb-8"
+              placeholder="https://exemplo.com/foto.jpg"
+              value={imageUrlInput}
+              onChange={e => setImageUrlInput(e.target.value)}
+              autoFocus
+            />
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setIsImageUrlModalOpen(false)}
+                className="flex-1 px-6 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-all"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={saveImageUrl}
+                className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100"
+              >
+                Salvar
+              </button>
             </div>
           </div>
         </div>

@@ -1,6 +1,8 @@
 
-import React, { useState } from 'react';
-import { Search, Plus, ShoppingCart, Trash2, CheckCircle2, ReceiptText, X, Package, Calendar } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Search, Plus, ShoppingCart, Trash2, CheckCircle2, ReceiptText, X, Package, Calendar, Download, Printer } from 'lucide-react';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 import { Product, Purchase, PurchaseItem, Batch, PharmaceuticalForm } from '../types';
 import { formatCurrency } from '../constants';
 
@@ -20,8 +22,39 @@ const PurchaseManagement: React.FC<PurchaseManagementProps> = ({ products, purch
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [isInvoiceViewOpen, setIsInvoiceViewOpen] = useState(false);
   const [viewingPurchase, setViewingPurchase] = useState<Purchase | null>(null);
+  const invoiceRef = useRef<HTMLDivElement>(null);
 
-  const cartTotal = cart.reduce((sum, item) => sum + item.total, 0);
+  const cartTotal = Math.round(cart.reduce((sum, item) => sum + item.total, 0));
+
+  const handleDownloadPDF = async () => {
+    if (!invoiceRef.current || !viewingPurchase) return;
+
+    try {
+      const element = invoiceRef.current;
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`Entrada_${viewingPurchase.invoiceNumber}.pdf`);
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error);
+    }
+  };
 
   const addToCart = (product: Product) => {
     const newItem: PurchaseItem = {
@@ -45,7 +78,7 @@ const PurchaseManagement: React.FC<PurchaseManagementProps> = ({ products, purch
     const item = { ...newCart[index], [field]: value };
     
     if (field === 'quantity' || field === 'purchasePrice') {
-      item.total = (item.quantity || 0) * (item.purchasePrice || 0);
+      item.total = Math.round((item.quantity || 0) * (item.purchasePrice || 0));
     }
     
     newCart[index] = item;
@@ -279,12 +312,28 @@ const PurchaseManagement: React.FC<PurchaseManagementProps> = ({ products, purch
                           />
                         </td>
                         <td className="py-4 pr-4">
-                          <input 
-                            type="number" 
-                            className="w-full p-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-blue-500 outline-none"
-                            value={item.quantity}
-                            onChange={e => updateCartItem(idx, 'quantity', parseInt(e.target.value) || 0)}
-                          />
+                          <div className="flex items-center gap-1">
+                            <button 
+                              onClick={() => updateCartItem(idx, 'quantity', Math.max(0, item.quantity - 1))}
+                              className="w-8 h-8 flex items-center justify-center bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200"
+                            >-</button>
+                            <input 
+                              type="number" 
+                              className="w-16 p-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-blue-500 outline-none text-center font-bold"
+                              value={item.quantity}
+                              onChange={e => updateCartItem(idx, 'quantity', parseInt(e.target.value) || 0)}
+                              onKeyDown={e => {
+                                if (e.key === 'Enter' || e.key === '+' || e.key === 'Add') {
+                                  e.preventDefault();
+                                  handleFinishPurchase();
+                                }
+                              }}
+                            />
+                            <button 
+                              onClick={() => updateCartItem(idx, 'quantity', item.quantity + 1)}
+                              className="w-8 h-8 flex items-center justify-center bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200"
+                            >+</button>
+                          </div>
                         </td>
                         <td className="py-4 pr-4">
                           <input 
@@ -339,22 +388,24 @@ const PurchaseManagement: React.FC<PurchaseManagementProps> = ({ products, purch
       {isInvoiceViewOpen && viewingPurchase && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/90 p-4 backdrop-blur-sm animate-fadeIn">
           <div className="bg-white w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-none shadow-2xl flex flex-col animate-slideUp">
-            <div className="p-12 space-y-12">
+            <div ref={invoiceRef} className="p-12 space-y-12 bg-white">
               <div className="flex justify-between items-start">
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white font-black text-xl">M</div>
-                    <h2 className="text-2xl font-black tracking-tighter text-slate-900">MEDSTOCK PRO</h2>
+                <div className="flex items-center gap-6">
+                  <div className="w-24 h-24 border-4 border-black rounded-full flex items-center justify-center">
+                    <div className="text-6xl font-bold text-black">+</div>
                   </div>
-                  <div className="text-xs text-slate-500 space-y-1 font-medium">
-                    <p>Avenida Combatentes da Liberdade da Pátria</p>
-                    <p>Bissau, Guiné-Bissau</p>
+                  <div>
+                    <h2 className="text-4xl font-black tracking-tighter leading-none text-black">GUIFARMA</h2>
+                    <p className="text-sm font-bold mt-1 text-black">Comércio de Produtos Farmacêuticos</p>
                   </div>
                 </div>
-                <div className="text-right space-y-2">
-                  <h1 className="text-4xl font-black text-slate-200 uppercase tracking-widest">ENTRADA</h1>
-                  <p className="font-mono font-bold text-slate-900">{viewingPurchase.invoiceNumber}</p>
-                  <p className="text-xs text-slate-500">{new Date(viewingPurchase.date).toLocaleDateString('pt', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
+                <div className="text-right text-[13px] space-y-1 font-medium text-black">
+                  <p>Rua Eduardo Mondelane Edifício Mavegro</p>
+                  <p>Bissau</p>
+                  <p>Contribuinte: 510019285</p>
+                  <p>Whatsapp: 002455142629</p>
+                  <p>Tel: 955142629 / 965025657</p>
+                  <p>Email: guifarma.distribuicao@gmail.com</p>
                 </div>
               </div>
 
@@ -416,7 +467,23 @@ const PurchaseManagement: React.FC<PurchaseManagementProps> = ({ products, purch
               </div>
             </div>
 
-            <div className="sticky bottom-0 bg-slate-50 border-t border-slate-200 p-6 flex justify-end items-center px-12">
+            <div className="sticky bottom-0 bg-slate-50 border-t border-slate-200 p-6 flex justify-between items-center px-12">
+              <div className="flex gap-4">
+                <button 
+                  onClick={() => window.print()}
+                  className="flex items-center gap-2 bg-slate-100 text-slate-700 px-6 py-3 rounded-xl font-bold hover:bg-slate-200 transition-all"
+                >
+                  <Printer size={18} />
+                  Imprimir
+                </button>
+                <button 
+                  onClick={handleDownloadPDF}
+                  className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg"
+                >
+                  <Download size={18} />
+                  PDF
+                </button>
+              </div>
               <button 
                 onClick={() => {
                   setIsInvoiceViewOpen(false);

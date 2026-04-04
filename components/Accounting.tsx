@@ -1,5 +1,15 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import { 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  Cell
+} from 'recharts';
 import { 
   BookOpen, 
   FileText, 
@@ -30,8 +40,8 @@ interface AccountingProps {
   onAddJournalEntry: (entry: JournalEntry) => void;
 }
 
-const Accounting: React.FC<AccountingProps> = ({ sales, purchases, products, journalEntries, onAddJournalEntry }) => {
-  const [activeTab, setActiveTab] = useState<'journal' | 'chart' | 'tax' | 'balance' | 'cost_center' | 'regulatory'>('journal');
+const Accounting: React.FC<AccountingProps> = ({ sales = [], purchases = [], products = [], journalEntries = [], onAddJournalEntry }) => {
+  const [activeTab, setActiveTab] = useState<'journal' | 'chart' | 'tax' | 'balance' | 'cost_center' | 'regulatory' | 'expenses'>('journal');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
@@ -71,18 +81,32 @@ const Accounting: React.FC<AccountingProps> = ({ sales, purchases, products, jou
   };
 
   // Calculate totals
-  const totalRevenue = sales.reduce((sum, s) => sum + s.total, 0);
-  const totalExpenses = purchases.reduce((sum, p) => sum + p.total, 0);
+  const totalRevenue = sales.reduce((sum, s) => sum + (s.total || 0), 0);
+  const totalExpenses = purchases.reduce((sum, p) => sum + (p.total || 0), 0);
   const totalIVA_Collected = sales.reduce((sum, s) => {
-    const totalAfterDiscount = s.subtotal - (s.subtotal * (s.discount / 100));
-    return sum + (totalAfterDiscount * (s.iva / 100));
+    const subtotal = s.subtotal || 0;
+    const discount = s.discount || 0;
+    const iva = s.iva || 0;
+    const totalAfterDiscount = subtotal - (subtotal * (discount / 100));
+    return sum + (totalAfterDiscount * (iva / 100));
   }, 0);
   const totalIVA_Paid = purchases.reduce((sum, p) => {
     // Assuming 18% IVA on purchases for simplicity if not specified
-    return sum + (p.total * 0.18); 
+    return sum + ((p.total || 0) * 0.18); 
   }, 0);
 
   const netIVA = totalIVA_Collected - totalIVA_Paid;
+
+  const expensesBySupplier = useMemo(() => {
+    const supplierMap: Record<string, number> = {};
+    purchases.forEach(p => {
+      const supplierName = p.supplier || 'Desconhecido';
+      supplierMap[supplierName] = (supplierMap[supplierName] || 0) + (p.total || 0);
+    });
+    return Object.entries(supplierMap)
+      .map(([name, total]) => ({ name, total }))
+      .sort((a, b) => b.total - a.total);
+  }, [purchases]);
 
   return (
     <div className="space-y-8 animate-fadeIn">
@@ -157,6 +181,7 @@ const Accounting: React.FC<AccountingProps> = ({ sales, purchases, products, jou
           { id: 'tax', label: 'Impostos / IVA', icon: FileText },
           { id: 'cost_center', label: 'Centros de Custo', icon: Target },
           { id: 'regulatory', label: 'Controlo Regulatório', icon: ShieldCheck },
+          { id: 'expenses', label: 'Despesas / Fornecedores', icon: ArrowDownLeft },
           { id: 'balance', label: 'Balanço', icon: PieChart },
         ].map(tab => (
           <button
@@ -439,6 +464,97 @@ const Accounting: React.FC<AccountingProps> = ({ sales, purchases, products, jou
                   ))}
                 </div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'expenses' && (
+          <div className="p-8 animate-fadeIn space-y-8">
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="font-bold text-slate-800">Despesas por Fornecedor</h3>
+                <p className="text-xs text-slate-400">Visualização do total de compras acumulado por cada fornecedor.</p>
+              </div>
+              <div className="bg-red-50 text-red-600 px-6 py-3 rounded-2xl border border-red-100">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total em Compras</p>
+                <p className="text-2xl font-black">{formatCurrency(totalExpenses)}</p>
+              </div>
+            </div>
+
+            <div className="h-[400px] w-full min-h-[400px] bg-slate-50 p-6 rounded-[32px] border border-slate-100">
+              {expensesBySupplier.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%" debounce={50}>
+                  <BarChart
+                    data={expensesBySupplier}
+                    layout="vertical"
+                    margin={{ top: 5, right: 30, left: 40, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#e2e8f0" />
+                    <XAxis 
+                      type="number" 
+                      hide 
+                    />
+                    <YAxis 
+                      dataKey="name" 
+                      type="category" 
+                      width={120}
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: '#64748b', fontSize: 11, fontWeight: 700 }}
+                    />
+                    <Tooltip 
+                      cursor={{ fill: 'rgba(226, 232, 240, 0.4)' }}
+                      contentStyle={{ 
+                        backgroundColor: '#fff', 
+                        borderRadius: '16px', 
+                        border: '1px solid #e2e8f0',
+                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                        fontSize: '12px',
+                        fontWeight: 'bold'
+                      }}
+                      formatter={(value: number) => [formatCurrency(value), 'Total Gasto']}
+                    />
+                    <Bar 
+                      dataKey="total" 
+                      radius={[0, 8, 8, 0]} 
+                      barSize={32}
+                    >
+                      {expensesBySupplier.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#0f172a' : '#334155'} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full flex flex-col items-center justify-center text-slate-400 space-y-4">
+                  <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center">
+                    <ArrowDownLeft size={32} />
+                  </div>
+                  <p className="font-bold">Nenhuma compra registada para análise.</p>
+                </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {expensesBySupplier.slice(0, 4).map((item, index) => (
+                <div key={item.name} className="flex items-center justify-between p-5 bg-white border border-slate-100 rounded-2xl shadow-sm">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center font-black text-xs">
+                      0{index + 1}
+                    </div>
+                    <div>
+                      <p className="font-bold text-slate-800">{item.name}</p>
+                      <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest">Fornecedor</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-black text-slate-900">{formatCurrency(item.total)}</p>
+                    <p className="text-[10px] text-emerald-600 font-bold">
+                      {((item.total / totalExpenses) * 100).toFixed(1)}% do total
+                    </p>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}

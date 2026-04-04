@@ -1,6 +1,8 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { BarChart3, Calendar, AlertTriangle, TrendingUp, MapPin, Download, DollarSign, Package, CheckCircle2, List } from 'lucide-react';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 import { Product, Sale, Client, MedicineCategory } from '../types';
 import { formatCurrency } from '../constants';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
@@ -11,26 +13,58 @@ interface ReportsProps {
   clients: Client[];
 }
 
-const Reports: React.FC<ReportsProps> = ({ products, sales, clients }) => {
+const Reports: React.FC<ReportsProps> = ({ products = [], sales = [], clients = [] }) => {
   const [activeTab, setActiveTab] = useState<'expiry' | 'financial' | 'region' | 'import' | 'lowStock' | 'detailedSales'>('expiry');
   const [lowStockCategory, setLowStockCategory] = useState<string>('all');
+  const reportRef = useRef<HTMLDivElement>(null);
+
+  const handleDownloadPDF = async () => {
+    if (!reportRef.current) return;
+
+    try {
+      const element = reportRef.current;
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`Relatorio_${activeTab}_${new Date().toISOString().split('T')[0]}.pdf`);
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error);
+    }
+  };
 
   // 1. Relatório de Validade
-  const nearExpiryProducts = products.flatMap(p => 
-    p.batches.map(b => ({
+  const nearExpiryProducts = products.flatMap(p => {
+    const batches = p.batches || [];
+    return batches.map(b => ({
       ...b,
       productName: p.name,
       genericName: p.genericName,
-      daysLeft: Math.ceil((new Date(b.expiryDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
-    }))
-  ).filter(b => b.daysLeft <= 180 && b.quantity > 0)
+      daysLeft: b.expiryDate ? Math.ceil((new Date(b.expiryDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : 9999
+    }));
+  }).filter(b => b.daysLeft <= 180 && (b.quantity || 0) > 0)
    .sort((a, b) => a.daysLeft - b.daysLeft);
 
   // 2. Ranking por Região
   const salesByRegion = clients.map(client => {
     const clientSales = sales.filter(s => s.clientId === client.id);
-    const total = clientSales.reduce((sum, s) => sum + s.total, 0);
-    return { region: client.region, total };
+    const total = clientSales.reduce((sum, s) => sum + (s.total || 0), 0);
+    return { region: client.region || 'N/A', total };
   }).reduce((acc: any[], curr) => {
     const existing = acc.find(a => a.region === curr.region);
     if (existing) {
@@ -43,39 +77,64 @@ const Reports: React.FC<ReportsProps> = ({ products, sales, clients }) => {
 
   // 3. Fluxo de Caixa (Simplificado)
   const dailyCashFlow = sales.reduce((acc: any[], sale) => {
-    const date = new Date(sale.date).toLocaleDateString('pt');
+    const date = sale.date ? new Date(sale.date).toLocaleDateString('pt') : 'N/A';
     const existing = acc.find(a => a.date === date);
     if (existing) {
-      existing.total += sale.total;
+      existing.total += (sale.total || 0);
     } else {
-      acc.push({ date, total: sale.total });
+      acc.push({ date, total: (sale.total || 0) });
     }
     return acc;
   }, []).slice(0, 7).reverse();
 
   // 4. Relatório de Stock Baixo
   const lowStockProducts = products.map(p => {
-    const currentStock = p.batches.reduce((sum, b) => sum + b.quantity, 0);
+    const batches = p.batches || [];
+    const currentStock = batches.reduce((sum, b) => sum + (b.quantity || 0), 0);
     return {
       ...p,
       currentStock,
-      criticalLevel: currentStock / p.minStockAlert
+      criticalLevel: currentStock / (p.minStockAlert || 1)
     };
   })
-  .filter(p => p.currentStock < p.minStockAlert)
+  .filter(p => p.currentStock < (p.minStockAlert || 0))
   .filter(p => lowStockCategory === 'all' || p.category === lowStockCategory)
   .sort((a, b) => a.criticalLevel - b.criticalLevel);
 
   const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 
   return (
-    <div className="space-y-8 animate-fadeIn">
-      <div className="flex justify-between items-center">
+    <div ref={reportRef} className="space-y-8 animate-fadeIn bg-white p-12 rounded-3xl">
+      {/* Header for PDF Export */}
+      <div className="hidden print:flex justify-between items-start mb-12 border-b-2 border-slate-900 pb-8">
+        <div className="flex items-center gap-6">
+          <div className="w-24 h-24 border-4 border-black rounded-full flex items-center justify-center">
+            <div className="text-6xl font-bold text-black">+</div>
+          </div>
+          <div>
+            <h2 className="text-4xl font-black tracking-tighter leading-none text-black">GUIFARMA</h2>
+            <p className="text-sm font-bold mt-1 text-black">Comércio de Produtos Farmacêuticos</p>
+          </div>
+        </div>
+        <div className="text-right text-[13px] space-y-1 font-medium text-black">
+          <p>Rua Eduardo Mondelane Edifício Mavegro</p>
+          <p>Bissau</p>
+          <p>Contribuinte: 510019285</p>
+          <p>Whatsapp: 002455142629</p>
+          <p>Tel: 955142629 / 965025657</p>
+          <p>Email: guifarma.distribuicao@gmail.com</p>
+        </div>
+      </div>
+
+      <div className="flex justify-between items-center print:hidden">
         <div>
           <h2 className="text-2xl font-bold text-slate-800">Administração e Finanças</h2>
           <p className="text-slate-500">Relatórios estratégicos para a GUIFARMA SA.</p>
         </div>
-        <button className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-xl hover:bg-slate-800 transition-all text-sm font-bold">
+        <button 
+          onClick={handleDownloadPDF}
+          className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-xl hover:bg-slate-800 transition-all text-sm font-bold"
+        >
           <Download size={18} />
           Exportar PDF (OHADA)
         </button>
@@ -256,8 +315,8 @@ const Reports: React.FC<ReportsProps> = ({ products, sales, clients }) => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
             <h3 className="font-bold text-slate-800 mb-8">Fluxo de Caixa (Últimos 7 Dias)</h3>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
+            <div className="h-[300px] w-full min-h-[300px]">
+              <ResponsiveContainer width="100%" height="100%" debounce={50}>
                 <BarChart data={dailyCashFlow}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                   <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10}} />
@@ -273,8 +332,8 @@ const Reports: React.FC<ReportsProps> = ({ products, sales, clients }) => {
           </div>
           <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
             <h3 className="font-bold text-slate-800 mb-8">Distribuição de Receita</h3>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
+            <div className="h-[300px] w-full min-h-[300px]">
+              <ResponsiveContainer width="100%" height="100%" debounce={50}>
                 <PieChart>
                   <Pie
                     data={salesByRegion}

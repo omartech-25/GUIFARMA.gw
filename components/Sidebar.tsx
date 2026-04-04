@@ -11,6 +11,8 @@ import {
   Pill,
   BookOpen,
   Wallet,
+  Activity,
+  ReceiptText,
   X
 } from 'lucide-react';
 import { ViewType, UserRole, User } from '../types';
@@ -30,13 +32,14 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setView, user, onLogout,
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'stock', label: 'Estoque', icon: Package, permission: 'registerProducts' },
-    { id: 'purchases', label: 'Entradas', icon: Package, permission: 'stockEntry' },
+    { id: 'purchases', label: 'Entrada de Estoque', icon: Package, permission: 'stockEntry' },
     { id: 'sales', label: 'Vendas', icon: ShoppingCart, permission: 'sales' },
     { id: 'cash', label: 'Caixa', icon: Wallet, permission: 'cashClosing' },
     { id: 'clients', label: 'Clientes', icon: Users, permission: 'registerClients' },
     { id: 'reports', label: 'Relatórios', icon: BarChart3, permission: ['reportsRegistration', 'reportsFinancial', 'reportsManagement'] },
     { id: 'accounting', label: 'Contabilidade', icon: BookOpen, permission: ['bankMovements', 'accountTransfers'] },
     { id: 'users', label: 'Usuários', icon: Settings, permission: ['registerUsers', 'systemSettings'] },
+    { id: 'logs', label: 'Logs', icon: Activity, permission: 'systemSettings' },
   ];
 
   return (
