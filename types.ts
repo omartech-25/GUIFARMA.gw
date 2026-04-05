@@ -48,6 +48,7 @@ export interface User {
   role: UserRole;
   email: string;
   password?: string;
+  status: 'Ativo' | 'Inativo';
   permissions: UserPermissions;
 }
 
@@ -269,4 +270,4 @@ export interface ActivityLog {
   ipAddress?: string;
 }
 
-export type ViewType = 'dashboard' | 'stock' | 'sales' | 'clients' | 'reports' | 'users' | 'purchases' | 'accounting' | 'cash' | 'logs';
+export type ViewType = 'dashboard' | 'stock' | 'sales' | 'clients' | 'reports' | 'users' | 'purchases' | 'accounting' | 'cash' | 'logs' | 'profile';

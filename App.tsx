@@ -11,6 +11,7 @@ import Accounting from './components/Accounting';
 import CashDesk from './components/CashDesk';
 import Login from './components/Login';
 import LogManagement from './components/LogManagement';
+import Profile from './components/Profile';
 import { ViewType, UserRole, Product, Sale, Client, User, Purchase, JournalEntry, CreditNote, SaleStatus, CashSession, CashMovement, PaymentMethod, UserPermissions, ActivityLog, ActivityType } from './types';
 import { MOCK_PRODUCTS, MOCK_SALES, MOCK_USER, MOCK_CLIENTS, DEFAULT_PERMISSIONS, ROLE_PERMISSIONS } from './constants';
 import { dataService } from './services/dataService';
@@ -87,11 +88,11 @@ const App: React.FC = () => {
         ]);
 
         // Garantir usuários padrão
-        const defaultUsers = [
+        const defaultUsers: User[] = [
           MOCK_USER,
-          { id: 'u2', name: 'Mamadú Baldé', email: 'mamadu@medstock.pro', password: 'admin', role: UserRole.STOCK_MANAGER, employeeName: 'Mamadú Baldé', permissions: ROLE_PERMISSIONS[UserRole.STOCK_MANAGER] },
-          { id: 'u3', name: 'Fatu Djalo', email: 'fatu@medstock.pro', password: 'admin', role: UserRole.SELLER, employeeName: 'Fatu Djalo', permissions: ROLE_PERMISSIONS[UserRole.SELLER] },
-          { id: 'u4', name: 'Usuário Teste', email: 'az965125324@gmail.com', password: 'admin', role: UserRole.ADMIN, employeeName: 'Usuário Teste', permissions: ROLE_PERMISSIONS[UserRole.ADMIN] }
+          { id: 'u2', name: 'Mamadú Baldé', email: 'mamadu@medstock.pro', password: 'admin', role: UserRole.STOCK_MANAGER, employeeName: 'Mamadú Baldé', status: 'Ativo', permissions: ROLE_PERMISSIONS[UserRole.STOCK_MANAGER] },
+          { id: 'u3', name: 'Fatu Djalo', email: 'fatu@medstock.pro', password: 'admin', role: UserRole.SELLER, employeeName: 'Fatu Djalo', status: 'Ativo', permissions: ROLE_PERMISSIONS[UserRole.SELLER] },
+          { id: 'u4', name: 'Usuário Teste', email: 'az965125324@gmail.com', password: 'admin', role: UserRole.ADMIN, employeeName: 'Usuário Teste', status: 'Ativo', permissions: ROLE_PERMISSIONS[UserRole.ADMIN] }
         ];
 
         const mergedUsers = [...dbUsers];
@@ -192,6 +193,11 @@ const App: React.FC = () => {
         const isValid = user && (user.password ? pass === user.password : (pass === 'admin' || pass === 'admin123'));
         
         if (isValid) {
+          if (user.status === 'Inativo') {
+            setNotification({ type: 'error', message: 'Sua conta está aguardando aprovação do administrador.' });
+            resolve(false);
+            return;
+          }
           localStorage.setItem('medstock_session', 'active');
           localStorage.setItem('medstock_user_id', user.id);
           setIsAuthenticated(true);
@@ -232,6 +238,7 @@ const App: React.FC = () => {
         email: email,
         password: pass,
         role: UserRole.SELLER, // Default role for self-registered users
+        status: 'Inativo', // Aguardando aprovação
         permissions: ROLE_PERMISSIONS[UserRole.SELLER]
       };
 
@@ -549,6 +556,9 @@ const App: React.FC = () => {
 
   const handleUpdateUser = (updatedUser: User) => {
     setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
+    if (currentUser && updatedUser.id === currentUser.id) {
+      setCurrentUser(updatedUser);
+    }
     dataService.saveUser(updatedUser).catch(console.error);
     logActivity(ActivityType.UPDATE, `Usuário ${updatedUser.name} atualizado`, `Cargo: ${updatedUser.role}`, updatedUser.id, 'User');
   };
@@ -849,8 +859,15 @@ const App: React.FC = () => {
             isSyncing={isSyncing}
           />
         );
+      case 'profile':
+        return (
+          <Profile 
+            user={currentUser} 
+            onUpdateUser={handleUpdateUser} 
+          />
+        );
       default:
-        return <div className="p-12 text-center text-slate-400">Em desenvolvimento...</div>;
+        return <Dashboard products={products} sales={sales} clients={clients} onNavigate={setCurrentView} />;
     }
   };
 

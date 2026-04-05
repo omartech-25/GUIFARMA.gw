@@ -144,6 +144,7 @@ export const MOCK_USER: User = {
   role: UserRole.ADMIN,
   email: 'admin@medstock.pro',
   password: 'admin',
+  status: 'Ativo',
   permissions: ROLE_PERMISSIONS[UserRole.ADMIN]
 };
 

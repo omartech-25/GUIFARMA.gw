@@ -33,6 +33,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, currentUser, onA
     password: '',
     confirmPassword: '',
     role: UserRole.SELLER,
+    status: 'Ativo' as 'Ativo' | 'Inativo',
     imageUrl: '',
     permissions: ROLE_PERMISSIONS[UserRole.SELLER]
   });
@@ -46,6 +47,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, currentUser, onA
         password: '',
         confirmPassword: '',
         role: selectedUser.role,
+        status: selectedUser.status || 'Ativo',
         imageUrl: '', // Placeholder
         permissions: selectedUser.permissions || ROLE_PERMISSIONS[selectedUser.role]
       });
@@ -57,6 +59,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, currentUser, onA
         password: '',
         confirmPassword: '',
         role: UserRole.SELLER,
+        status: 'Ativo',
         imageUrl: '',
         permissions: ROLE_PERMISSIONS[UserRole.SELLER]
       });
@@ -106,6 +109,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, currentUser, onA
         email: formData.email,
         password: formData.password || selectedUser.password,
         role: formData.role,
+        status: formData.status,
         permissions: formData.permissions
       };
       onUpdateUser(updatedUser);
@@ -118,6 +122,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, currentUser, onA
         email: formData.email,
         password: formData.password,
         role: formData.role,
+        status: formData.status,
         permissions: formData.permissions
       };
       onAddUser(newUser);
@@ -324,6 +329,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, currentUser, onA
                       <th className="pb-4 px-4">Login</th>
                       <th className="pb-4 px-4">Cargo</th>
                       <th className="pb-4 px-4">Email</th>
+                      <th className="pb-4 px-4">Status</th>
                       <th className="pb-4 px-4 text-right">Ações</th>
                     </tr>
                   </thead>
@@ -345,6 +351,11 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, currentUser, onA
                           </span>
                         </td>
                         <td className="py-4 px-4 text-slate-500">{user.email}</td>
+                        <td className="py-4 px-4">
+                          <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${user.status === 'Ativo' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
+                            {user.status || 'Ativo'}
+                          </span>
+                        </td>
                         <td className="py-4 px-4 text-right">
                           <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button 
@@ -418,6 +429,26 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, currentUser, onA
                     value={formData.name}
                     onChange={e => setFormData({...formData, name: e.target.value})}
                   />
+                </div>
+
+                <div className="grid grid-cols-12 gap-4 items-center">
+                  <label className="col-span-4 text-[11px] font-bold text-slate-500 uppercase text-right pr-4">Status da Conta:</label>
+                  <div className="col-span-8 flex gap-4">
+                    <button
+                      type="button"
+                      onClick={() => setFormData({...formData, status: 'Ativo'})}
+                      className={`px-6 py-2 rounded-xl text-xs font-bold transition-all ${formData.status === 'Ativo' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-200' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+                    >
+                      ATIVO
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({...formData, status: 'Inativo'})}
+                      className={`px-6 py-2 rounded-xl text-xs font-bold transition-all ${formData.status === 'Inativo' ? 'bg-red-500 text-white shadow-lg shadow-red-200' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+                    >
+                      INATIVO
+                    </button>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-12 gap-4 items-center">

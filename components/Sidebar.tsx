@@ -13,6 +13,7 @@ import {
   Wallet,
   Activity,
   ReceiptText,
+  User as UserIcon,
   X
 } from 'lucide-react';
 import { ViewType, UserRole, User } from '../types';
@@ -40,6 +41,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setView, user, onLogout,
     { id: 'accounting', label: 'Contabilidade', icon: BookOpen, permission: ['bankMovements', 'accountTransfers'] },
     { id: 'users', label: 'Usuários', icon: Settings, permission: ['registerUsers', 'systemSettings'] },
     { id: 'logs', label: 'Logs', icon: Activity, permission: 'systemSettings' },
+    { id: 'profile', label: 'Meu Perfil', icon: UserIcon },
   ];
 
   return (
