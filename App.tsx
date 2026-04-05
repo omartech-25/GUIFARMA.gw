@@ -222,6 +222,51 @@ const App: React.FC = () => {
     });
   };
 
+  const handleRegister = async (name: string, email: string, pass: string) => {
+    try {
+      setIsSyncing(true);
+      const newUser: User = {
+        id: `u-${Date.now()}`,
+        name: name.split(' ')[0], // Login name
+        employeeName: name,
+        email: email,
+        password: pass,
+        role: UserRole.SELLER, // Default role for self-registered users
+        permissions: ROLE_PERMISSIONS[UserRole.SELLER]
+      };
+
+      // Verificar se o email já existe
+      const existingUser = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+      if (existingUser) {
+        return false;
+      }
+
+      await dataService.saveUser(newUser);
+      setUsers(prev => [...prev, newUser]);
+      
+      // Log activity
+      const registerLog: ActivityLog = {
+        id: `log-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        userId: newUser.id,
+        userName: newUser.name,
+        userRole: newUser.role,
+        type: ActivityType.CREATE,
+        action: `Novo usuário ${newUser.name} se registrou no sistema`,
+        targetId: newUser.id,
+        targetType: 'User'
+      };
+      dataService.saveActivityLog(registerLog).catch(console.error);
+      
+      return true;
+    } catch (error) {
+      console.error('Erro ao registrar usuário:', error);
+      return false;
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   const handleLogout = () => {
     if (currentUser) {
       logActivity(ActivityType.LOGOUT, `Usuário ${currentUser.name} saiu do sistema`, undefined, currentUser.id, 'User');
@@ -509,6 +554,13 @@ const App: React.FC = () => {
   };
 
   const handleDeleteUser = async (userId: string) => {
+    // Proteger usuários mestres
+    const masterUserIds = ['u1', 'u2', 'u3', 'u4'];
+    if (masterUserIds.includes(userId)) {
+      setNotification({ type: 'error', message: 'Este usuário é um administrador mestre e não pode ser excluído.' });
+      return;
+    }
+
     const userToDelete = users.find(u => u.id === userId);
     setUsers(prev => prev.filter(u => u.id !== userId));
     
@@ -646,7 +698,7 @@ const App: React.FC = () => {
   }
 
   if (!isAuthenticated || !currentUser) {
-    return <Login onLogin={handleLogin} />;
+    return <Login onLogin={handleLogin} onRegister={handleRegister} />;
   }
 
   const renderView = () => {

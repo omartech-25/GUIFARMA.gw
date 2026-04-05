@@ -144,6 +144,14 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, currentUser, onA
 
   const confirmDelete = () => {
     if (userToDelete && onDeleteUser) {
+      // Proteger usuários mestres do sistema
+      const masterUserIds = ['u1', 'u2', 'u3', 'u4'];
+      if (masterUserIds.includes(userToDelete.id)) {
+        setErrorToast({ show: true, message: 'Usuários mestres do sistema não podem ser excluídos.' });
+        setIsDeleteConfirmOpen(false);
+        return;
+      }
+
       onDeleteUser(userToDelete.id);
       setSelectedUser(users[0] || null);
       setSuccessToast({ show: true, message: 'Usuário excluído com sucesso!' });

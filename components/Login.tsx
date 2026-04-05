@@ -4,9 +4,10 @@ import { Lock, Mail, Loader2, AlertCircle, ArrowRight, Info, Eye, EyeOff, CheckC
 
 interface LoginProps {
   onLogin: (email: string, pass: string) => Promise<boolean>;
+  onRegister: (name: string, email: string, pass: string) => Promise<boolean>;
 }
 
-const Login: React.FC<LoginProps> = ({ onLogin }) => {
+const Login: React.FC<LoginProps> = ({ onLogin, onRegister }) => {
   const [mode, setMode] = useState<'login' | 'forgot' | 'register'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -82,8 +83,9 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       }
 
       setIsLoading(true);
-      // Simulação de registro
-      setTimeout(() => {
+      const success = await onRegister(name, email, password);
+      
+      if (success) {
         setIsSuccess(true);
         setSuccessMessage('Conta criada com sucesso!');
         setTimeout(() => {
@@ -93,7 +95,10 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           setPassword('');
           setConfirmPassword('');
         }, 2000);
-      }, 1500);
+      } else {
+        setError('Erro ao criar conta. Tente outro email.');
+        setIsLoading(false);
+      }
     } else if (mode === 'forgot') {
       if (!email) {
         setError('Por favor, insira seu email.');
