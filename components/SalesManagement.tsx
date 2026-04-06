@@ -1345,92 +1345,77 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
           >
             {/* Invoice Content (Matches Image) */}
             <div className="p-12 bg-white text-black font-sans print:p-0">
-              <div ref={invoiceRef} className="max-w-[800px] mx-auto border border-gray-200 p-8 print:border-none print:p-0 invoice-print">
+              <div ref={invoiceRef} className="max-w-[800px] mx-auto border border-gray-200 p-8 print:p-0 invoice-print">
                 {/* Header */}
-                <div className="flex justify-between items-start mb-12">
-                  <div className="flex items-center gap-6">
-                    <div className="w-24 h-24 border-4 border-black rounded-full flex items-center justify-center print:border-none">
-                      <div className="text-6xl font-bold">+</div>
-                    </div>
-                    <div>
-                      <h2 className="text-4xl font-black tracking-tighter leading-none">GUIFARMA</h2>
-                      <p className="text-sm font-bold mt-1">Comércio de Produtos Farmacêuticos</p>
-                    </div>
-                  </div>
-                  <div className="text-right text-[13px] space-y-1 font-medium">
-                    <p>Rua Eduardo Mondelane Edifício Mavegro</p>
-                    <p>Bissau</p>
-                    <p>Contribuinte: 510019285</p>
-                    <p>Whatsapp: 002455142629</p>
-                    <p>Tel: 955142629 / 965025657</p>
-                    <p>Email: guifarma.distribuicao@gmail.com</p>
-                  </div>
+                <div className="flex justify-end mb-4">
+                  <p className="text-sm font-bold">Email: guifarma.distribuicao@gmail.com</p>
                 </div>
-
-                {/* Invoice Number */}
-                <div className="text-center mb-8">
-                  <p className="text-sm font-bold uppercase tracking-widest">SÉRIE A FATURA Nº{viewingSale.invoiceNumber}</p>
-                  <div className="w-48 h-0.5 bg-black mx-auto mt-1"></div>
+                
+                <div className="flex justify-center mb-8">
+                  <div className="text-center">
+                    <h2 className="text-xl font-bold uppercase tracking-wider border-b-2 border-black inline-block pb-1">
+                      SÉRIE A FATURA N°{viewingSale.invoiceNumber}
+                    </h2>
+                  </div>
                 </div>
 
                 {/* Info Table */}
-                <div className="grid grid-cols-2 mb-6">
-                  <table className="w-full border-collapse border border-black print:border-none">
+                <div className="mb-6">
+                  <table className="w-full border-collapse border border-black">
                     <tbody>
                       <tr>
-                        <td className="border border-black p-2 font-bold text-xs w-1/3 print:border-none">Data:</td>
-                        <td className="border border-black p-2 text-xs print:border-none">{new Date(viewingSale.date).toLocaleDateString('pt')}</td>
+                        <td className="border border-black p-2 font-bold text-xs w-[15%]">Data:</td>
+                        <td className="border border-black p-2 text-xs w-[35%]">{new Date(viewingSale.date).toLocaleDateString('pt')}</td>
+                        <td className="border border-black p-2 font-bold text-xs w-[25%] align-middle" rowSpan={2}>Método de Pgmto</td>
+                        <td className="border border-black p-2 font-bold text-xs uppercase w-[25%] align-middle" rowSpan={2}>
+                          {viewingSale.paymentMethod === PaymentMethod.CASH ? 'DINHEIRO' : viewingSale.paymentMethod.toUpperCase()}
+                        </td>
                       </tr>
                       <tr>
-                        <td className="border border-black p-2 font-bold text-xs print:border-none">Cliente:</td>
-                        <td className="border border-black p-2 text-xs uppercase font-bold print:border-none">{viewingSale.clientName}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                  <table className="w-full border-collapse border-y border-r border-black print:border-none">
-                    <tbody>
-                      <tr>
-                        <td className="border-r border-black p-2 font-bold text-xs w-1/2 print:border-none">Método de Pgmto</td>
-                        <td className="p-2 text-xs font-bold uppercase">{viewingSale.paymentMethod}</td>
-                      </tr>
-                      <tr>
-                        <td className="border-r border-black p-2 text-xs print:border-none" colSpan={2}>&nbsp;</td>
+                        <td className="border border-black p-2 font-bold text-xs">Cliente:</td>
+                        <td className="border border-black p-2 text-xs uppercase font-bold">{viewingSale.clientName}</td>
                       </tr>
                     </tbody>
                   </table>
                 </div>
 
                 {/* Items Table */}
-                <table className="w-full border-collapse border border-black mb-8 print:border-none">
+                <table className="w-full border-collapse border border-black mb-8">
                   <thead>
-                    <tr className="bg-gray-50 print:bg-transparent">
-                      <th className="border border-black p-2 text-[10px] font-bold uppercase print:border-none">QTD</th>
-                      <th className="border border-black p-2 text-[10px] font-bold uppercase print:border-none">REF</th>
-                      <th className="border border-black p-2 text-[10px] font-bold uppercase text-left print:border-none">PRODUTO</th>
-                      <th className="border border-black p-2 text-[10px] font-bold uppercase print:border-none">LOTE</th>
-                      <th className="border border-black p-2 text-[10px] font-bold uppercase print:border-none">VLD</th>
-                      <th className="border border-black p-2 text-[10px] font-bold uppercase text-right print:border-none">PREÇO</th>
-                      <th className="border border-black p-2 text-[10px] font-bold uppercase text-right print:border-none">TOTAL</th>
-                      <th className="border border-black p-2 text-[10px] font-bold uppercase print:border-none">NOTAS</th>
+                    <tr className="bg-gray-50">
+                      <th className="border border-black p-2 text-[10px] font-bold uppercase w-[8%]">QTD</th>
+                      <th className="border border-black p-2 text-[10px] font-bold uppercase w-[10%]">REF</th>
+                      <th className="border border-black p-2 text-[10px] font-bold uppercase text-left w-[30%]">PRODUTO</th>
+                      <th className="border border-black p-2 text-[10px] font-bold uppercase w-[10%]">LOTE</th>
+                      <th className="border border-black p-2 text-[10px] font-bold uppercase w-[10%]">VLD</th>
+                      <th className="border border-black p-2 text-[10px] font-bold uppercase text-right w-[12%]">PREÇO</th>
+                      <th className="border border-black p-2 text-[10px] font-bold uppercase text-right w-[12%]">TOTAL</th>
+                      <th className="border border-black p-2 text-[10px] font-bold uppercase w-[8%]">NOTAS</th>
                     </tr>
                   </thead>
                   <tbody>
                     {viewingSale.items.map((item, idx) => (
                       <tr key={idx}>
-                        <td className="border border-black p-2 text-center text-[11px] font-bold print:border-none">{item.quantity}</td>
-                        <td className="border border-black p-2 text-center text-[10px] font-mono print:border-none">{item.productCode}</td>
-                        <td className="border border-black p-2 text-[11px] font-bold uppercase print:border-none">{item.productName}</td>
-                        <td className="border border-black p-2 text-center text-[10px] font-mono print:border-none">{item.batchNumber}</td>
-                        <td className="border border-black p-2 text-center text-[10px] font-bold print:border-none">{new Date(item.expiryDate).toLocaleDateString('pt', { month: '2-digit', year: 'numeric' })}</td>
-                        <td className="border border-black p-2 text-right text-[11px] font-bold print:border-none">{formatCurrency(item.unitPrice).replace('FCFA', '').trim()} XOF</td>
-                        <td className="border border-black p-2 text-right text-[11px] font-bold print:border-none">{formatCurrency(item.total).replace('FCFA', '').trim()} XOF</td>
-                        <td className="border border-black p-2 text-[10px] text-center italic text-gray-400 print:border-none">n.a</td>
+                        <td className="border border-black p-2 text-center text-[11px] font-bold">{item.quantity}</td>
+                        <td className="border border-black p-2 text-center text-[10px] font-mono">{item.productCode}</td>
+                        <td className="border border-black p-2 text-[11px] font-bold uppercase">{item.productName}</td>
+                        <td className="border border-black p-2 text-center text-[10px] font-mono">{item.batchNumber}</td>
+                        <td className="border border-black p-2 text-center text-[10px] font-bold">{new Date(item.expiryDate).toLocaleDateString('pt', { month: '2-digit', year: 'numeric' })}</td>
+                        <td className="border border-black p-2 text-right text-[11px] font-bold whitespace-nowrap">
+                          {formatCurrency(item.unitPrice).replace('FCFA', '').trim()} FCFA XOF
+                        </td>
+                        <td className="border border-black p-2 text-right text-[11px] font-bold whitespace-nowrap">
+                          {formatCurrency(item.total).replace('FCFA', '').trim()} FCFA XOF
+                        </td>
+                        <td className="border border-black p-2 text-[10px] text-center italic text-gray-400">n.a</td>
                       </tr>
                     ))}
                     <tr>
-                      <td className="border border-black p-2 font-bold text-sm text-center bg-gray-50 print:bg-transparent print:border-none" colSpan={6}>TOTAL</td>
-                      <td className="border border-black p-2 font-bold text-sm text-right bg-gray-50 print:bg-transparent print:border-none">{formatCurrency(viewingSale.total).replace('FCFA', '').trim()} CFA</td>
-                      <td className="border border-black p-2 bg-gray-50 print:bg-transparent print:border-none"></td>
+                      <td className="border border-black p-2 font-bold text-sm text-center bg-gray-50" colSpan={6}>TOTAL</td>
+                      <td className="border border-black p-2 font-bold text-sm text-right bg-gray-50 whitespace-nowrap">
+                        {formatCurrency(viewingSale.total).replace('FCFA', '').trim()} FCFA CFA
+                      </td>
+                      <td className="border border-black p-2 bg-gray-50"></td>
                     </tr>
                   </tbody>
                 </table>
@@ -1438,18 +1423,18 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
                 {/* Payment Type and Footer */}
                 <div className="flex justify-between items-start gap-12">
                   <div className="w-1/2">
-                    <table className="w-full border-collapse border border-black print:border-none">
+                    <table className="w-full border-collapse border border-black">
                       <thead>
-                        <tr className="bg-gray-50 print:bg-transparent">
-                          <th className="border border-black p-2 text-[10px] font-bold text-left uppercase print:border-none">TIPO DE PAGAMENTO</th>
+                        <tr className="bg-gray-50">
+                          <th className="border border-black p-2 text-[10px] font-bold text-left uppercase">TIPO DE PAGAMENTO</th>
                         </tr>
                       </thead>
                       <tbody>
                         {['CAIXA', 'CHEQUE', 'TRANSFERENCIA', 'ORANGE MONEY'].map(type => (
                           <tr key={type}>
-                            <td className="border border-black p-2 text-[11px] font-bold flex justify-between items-center print:border-none">
+                            <td className="border border-black p-2 text-[11px] font-bold flex justify-between items-center">
                               <span className={type === 'CAIXA' && viewingSale.paymentMethod === PaymentMethod.CASH ? 'underline' : ''}>{type}</span>
-                              <div className="w-5 h-5 border-2 border-black flex items-center justify-center print:border-black">
+                              <div className="w-5 h-5 border-2 border-black flex items-center justify-center">
                                 {(
                                   (type === 'CAIXA' && viewingSale.paymentMethod === PaymentMethod.CASH) ||
                                   viewingSale.paymentMethod.toUpperCase() === type || 
@@ -1466,7 +1451,7 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
                   <div className="w-1/2 flex flex-col items-end justify-end pt-24">
                     <div className="text-center w-full">
                       <div className="relative inline-block">
-                        <div className="border-t-2 border-black px-12 pt-2 print:border-none">
+                        <div className="border-t-2 border-black px-12 pt-2">
                           <p className="text-xs font-bold uppercase tracking-widest">Carimbo e Assinatura</p>
                         </div>
                       </div>
@@ -1475,8 +1460,8 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
                 </div>
 
                 {/* QR Code and Authorization URL */}
-                <div className="mt-12 pt-8 border-t border-gray-100 flex flex-col items-start gap-4 print:border-none">
-                  <div className="bg-white p-1 border border-gray-200 rounded-lg print:border-none">
+                <div className="mt-12 pt-8 border-t border-gray-100 flex flex-col items-start gap-4">
+                  <div className="bg-white p-1 border border-gray-200 rounded-lg">
                     <QRCodeSVG 
                       value="https://kontaktu.mef.gw:443/invoice_issuance_authorization/00000049202529" 
                       size={80}
