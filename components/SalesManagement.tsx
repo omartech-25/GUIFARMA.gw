@@ -37,6 +37,7 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
 }) => {
   const [isPDVOpen, setIsPDVOpen] = useState(!!initialProductId);
   const [searchTerm, setSearchTerm] = useState('');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   React.useEffect(() => {
     if (initialProductId) {
@@ -807,24 +808,97 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
                   </div>
                   <div className="flex gap-3">
                     <div className="bg-white p-2 rounded-[2rem] shadow-lg shadow-slate-200/50 flex gap-1">
-                      <button className="p-4 bg-emerald-600 text-white rounded-3xl shadow-lg shadow-emerald-200">
+                      <button 
+                        onClick={() => setViewMode('grid')}
+                        className={`p-4 rounded-3xl transition-all ${viewMode === 'grid' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200' : 'text-slate-400 hover:bg-slate-50'}`}
+                      >
                         <LayoutGrid size={20} />
                       </button>
-                      <button className="p-4 text-slate-400 hover:bg-slate-50 rounded-3xl transition-all">
+                      <button 
+                        onClick={() => setViewMode('list')}
+                        className={`p-4 rounded-3xl transition-all ${viewMode === 'list' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200' : 'text-slate-400 hover:bg-slate-50'}`}
+                      >
                         <List size={20} />
                       </button>
                     </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                <div className={viewMode === 'grid' ? "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6" : "flex flex-col gap-4"}>
                   {products.filter(p => 
                     p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                    p.genericName.toLowerCase().includes(searchTerm.toLowerCase())
+                    p.genericName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    p.code.toLowerCase().includes(searchTerm.toLowerCase())
                   ).map(product => {
                     const totalInStock = product.batches.reduce((sum, b) => sum + b.quantity, 0);
                     const isLowStock = totalInStock < product.minStockAlert;
                     
+                    if (viewMode === 'list') {
+                      return (
+                        <div 
+                          key={product.id} 
+                          className={`bg-white rounded-2xl border p-4 flex items-center justify-between gap-6 transition-all hover:shadow-md ${
+                            isLowStock ? 'border-red-100 bg-red-50/10' : 'border-slate-100'
+                          }`}
+                        >
+                          <div className="flex items-center gap-4 flex-1">
+                            <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center shrink-0">
+                              <Pill className="text-emerald-600" size={24} />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-black text-slate-900 truncate uppercase">{product.name}</h4>
+                                <span className="text-[10px] font-bold text-slate-400 uppercase bg-slate-50 px-2 py-0.5 rounded">{product.code}</span>
+                              </div>
+                              <p className="text-xs text-slate-500 truncate">{product.genericName}</p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-8">
+                            <div className="text-right hidden sm:block">
+                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Estoque</p>
+                              <p className={`text-sm font-black ${isLowStock ? 'text-red-500' : 'text-slate-700'}`}>{totalInStock} un</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Preço</p>
+                              <p className="text-sm font-black text-slate-900">{formatCurrency(product.sellingPriceWholesale)}</p>
+                            </div>
+                            
+                            <div className="flex items-center gap-3">
+                              <input 
+                                type="number" 
+                                min="1"
+                                className="w-12 h-10 bg-slate-50 border border-slate-200 rounded-xl text-center font-black text-slate-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                                value={productQuantities[product.id] || 1}
+                                onChange={(e) => {
+                                  const val = parseInt(e.target.value) || 1;
+                                  setProductQuantities(prev => ({ ...prev, [product.id]: val }));
+                                }}
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                              <button 
+                                onClick={() => {
+                                  const qty = productQuantities[product.id] || 1;
+                                  const firstBatch = product.batches
+                                    .filter(b => b.quantity > 0 && new Date(b.expiryDate) > new Date())
+                                    .sort((a, b) => new Date(a.expiryDate).getTime() - new Date(b.expiryDate).getTime())[0];
+                                  if (firstBatch) {
+                                    addToCart(product, firstBatch, qty);
+                                    setProductQuantities(prev => ({ ...prev, [product.id]: 1 }));
+                                  } else {
+                                    setErrorToast({ show: true, message: 'Produto sem estoque disponível ou vencido' });
+                                  }
+                                }}
+                                className="w-10 h-10 bg-emerald-600 text-white rounded-xl flex items-center justify-center shadow-lg shadow-emerald-200 hover:bg-emerald-700 transition-all"
+                              >
+                                <Plus size={20} strokeWidth={3} />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+
                     return (
                       <div 
                         key={product.id} 

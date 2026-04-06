@@ -186,11 +186,6 @@ const Login: React.FC<LoginProps> = ({ onLogin, onRegister }) => {
         </label>
       </div>
 
-      <div className="flex items-start gap-2 bg-blue-500/5 border border-blue-500/10 p-3 rounded-xl text-blue-400/80 text-[10px] font-medium">
-        <span className="mt-0.5 shrink-0"><Info size={14} /></span>
-        <p>Acesso Restrito: <b>admin@medstock.pro</b> | Senha: <b>admin123</b></p>
-      </div>
-
       {error && (
         <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-2xl flex items-center gap-3 text-red-400 text-sm animate-shake">
           <AlertCircle size={18} />
