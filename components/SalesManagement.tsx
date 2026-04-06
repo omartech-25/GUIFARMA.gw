@@ -1338,14 +1338,14 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
       {/* Invoice Receipt Modal - MODELO OFICIAL */}
       {isInvoiceOpen && viewingSale && (
         <div 
-          className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/90 p-4 backdrop-blur-md"
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/90 p-4 backdrop-blur-md invoice-modal-container"
         >
           <div 
-            className="bg-white w-full max-w-5xl max-h-[95vh] overflow-y-auto rounded-3xl shadow-2xl flex flex-col relative"
+            className="bg-white w-full max-w-5xl max-h-[95vh] overflow-y-auto rounded-3xl shadow-2xl flex flex-col relative invoice-modal-content"
           >
             {/* Invoice Content (Matches Image) */}
-            <div className="p-12 bg-white text-black font-sans print:p-0">
-              <div ref={invoiceRef} className="max-w-[800px] mx-auto border border-gray-200 p-8 print:p-0 invoice-print">
+            <div className="p-12 bg-white text-black font-sans print:p-4">
+              <div ref={invoiceRef} className="max-w-[800px] mx-auto border-2 border-black p-8 invoice-print">
                 {/* Header */}
                 <div className="flex justify-end mb-4">
                   <p className="text-sm font-bold">Email: guifarma.distribuicao@gmail.com</p>
