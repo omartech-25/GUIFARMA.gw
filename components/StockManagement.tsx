@@ -39,8 +39,6 @@ const StockManagement: React.FC<StockManagementProps> = ({
   const [successToast, setSuccessToast] = useState<{ show: boolean; message: string } | null>(null);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
-  const [isImageUrlModalOpen, setIsImageUrlModalOpen] = useState(false);
-  const [imageUrlInput, setImageUrlInput] = useState('');
 
   const [formData, setFormData] = useState({
     code: '',
@@ -277,16 +275,6 @@ const StockManagement: React.FC<StockManagementProps> = ({
     }
   };
 
-  const handleImageUpload = () => {
-    setImageUrlInput(formData.imageUrl || '');
-    setIsImageUrlModalOpen(true);
-  };
-
-  const saveImageUrl = () => {
-    setFormData({ ...formData, imageUrl: imageUrlInput });
-    setIsImageUrlModalOpen(false);
-  };
-
   const productSales = useMemo(() => {
     if (!selectedProduct) return [];
     return sales.filter(s => s.items.some(item => item.productId === selectedProduct.id));
@@ -367,7 +355,8 @@ const StockManagement: React.FC<StockManagementProps> = ({
   return (
     <div className="min-h-screen bg-[#F3F4F6] p-4 md:p-8 animate-fadeIn">
       {/* Header with Title */}
-      <div className="max-w-6xl mx-auto mb-6">
+      {/* Sticky Header, Toolbar and Tabs */}
+      <div className="max-w-6xl mx-auto sticky top-0 z-40 bg-[#F3F4F6] pt-4 -mt-4 mb-6">
         <div className="bg-[#9333EA] text-white py-2 px-6 rounded-t-xl flex justify-between items-center shadow-lg">
           <h1 className="text-sm font-bold uppercase tracking-widest">Produtos</h1>
         </div>
@@ -439,7 +428,7 @@ const StockManagement: React.FC<StockManagementProps> = ({
         </div>
 
         {/* Tabs */}
-        <div className="bg-white border-x border-slate-200 flex overflow-x-auto">
+        <div className="bg-white border-x border-slate-200 flex overflow-x-auto shadow-sm">
           {[
             { id: 'inventory', label: 'Inventário Geral' },
             { id: 'details', label: 'Dados do Produto' },
@@ -461,8 +450,10 @@ const StockManagement: React.FC<StockManagementProps> = ({
             </button>
           ))}
         </div>
+      </div>
 
-        {/* Main Content Area */}
+      {/* Main Content Area */}
+      <div className="max-w-6xl mx-auto">
         <div className="bg-white border border-slate-200 rounded-b-xl shadow-xl p-4 md:p-8 min-h-[600px]">
           {activeTab === 'inventory' && (
             <div className="space-y-6">
@@ -637,9 +628,9 @@ const StockManagement: React.FC<StockManagementProps> = ({
           )}
 
           {activeTab === 'details' && (
-            <form onSubmit={handleSave} className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
-              {/* Left Side: Form Fields */}
-              <div className="lg:col-span-7 space-y-6">
+            <form onSubmit={handleSave} className="max-w-4xl mx-auto space-y-6">
+              {/* Form Fields */}
+              <div className="space-y-6">
                 <div className="flex flex-col md:grid md:grid-cols-12 gap-2 md:gap-4 items-start md:items-center">
                   <label className="md:col-span-3 text-[11px] font-bold text-slate-500 uppercase md:text-right md:pr-4">Código:</label>
                   <input 
@@ -827,27 +818,6 @@ const StockManagement: React.FC<StockManagementProps> = ({
                     onChange={e => setFormData({...formData, maxStock: e.target.value})}
                   />
                 </div>
-              </div>
-
-              {/* Right Side: Image Placeholder */}
-              <div className="lg:col-span-5 flex flex-col items-center justify-center space-y-6">
-                <div className="w-full aspect-square max-w-[350px] bg-slate-100 rounded-3xl border-4 border-slate-200 flex flex-col items-center justify-center text-slate-300 relative overflow-hidden group">
-                  {formData.imageUrl ? (
-                    <img src={formData.imageUrl} alt="Produto" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                  ) : (
-                    <>
-                      <ImageIcon size={120} className="opacity-20" />
-                      <p className="text-2xl font-black uppercase tracking-tighter opacity-20 text-center px-8">Produto Sem Imagem</p>
-                    </>
-                  )}
-                </div>
-                <button 
-                  type="button" 
-                  onClick={handleImageUpload}
-                  className="px-8 py-2 bg-slate-200 text-slate-500 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-slate-300 transition-all"
-                >
-                  Selecione a Foto
-                </button>
               </div>
             </form>
           )}
@@ -1164,43 +1134,6 @@ const StockManagement: React.FC<StockManagementProps> = ({
                 className="flex-1 px-6 py-3 bg-red-500 text-white rounded-xl font-bold hover:bg-red-600 transition-all shadow-lg shadow-red-100"
               >
                 Excluir
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Image URL Modal */}
-      {isImageUrlModalOpen && (
-        <div className="fixed inset-0 z-[400] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fadeIn">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 animate-slideUp">
-            <div className="w-16 h-16 bg-blue-50 text-blue-500 rounded-2xl flex items-center justify-center mb-6 mx-auto">
-              <ImageIcon size={32} />
-            </div>
-            <h3 className="text-xl font-bold text-slate-900 text-center mb-2">URL da Imagem</h3>
-            <p className="text-slate-500 text-center mb-6 text-sm">
-              Insira a URL da imagem para o produto <span className="font-bold text-slate-800">{formData.name || 'Novo Produto'}</span>.
-            </p>
-            <input 
-              type="text" 
-              className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none mb-8"
-              placeholder="https://exemplo.com/imagem.jpg"
-              value={imageUrlInput}
-              onChange={e => setImageUrlInput(e.target.value)}
-              autoFocus
-            />
-            <div className="flex gap-3">
-              <button 
-                onClick={() => setIsImageUrlModalOpen(false)}
-                className="flex-1 px-6 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-all"
-              >
-                Cancelar
-              </button>
-              <button 
-                onClick={saveImageUrl}
-                className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100"
-              >
-                Salvar
               </button>
             </div>
           </div>
