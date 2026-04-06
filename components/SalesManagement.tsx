@@ -859,6 +859,14 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
                               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Estoque</p>
                               <p className={`text-sm font-black ${isLowStock ? 'text-red-500' : 'text-slate-700'}`}>{totalInStock} un</p>
                             </div>
+                            <div className="text-right hidden md:block">
+                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Validade</p>
+                              <p className="text-sm font-black text-slate-700">
+                                {product.batches.length > 0 
+                                  ? new Date(Math.min(...product.batches.map(b => new Date(b.expiryDate).getTime()))).toLocaleDateString('pt', { month: '2-digit', year: 'numeric' })
+                                  : '---'}
+                              </p>
+                            </div>
                             <div className="text-right">
                               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Preço</p>
                               <p className="text-sm font-black text-slate-900">{formatCurrency(product.sellingPriceWholesale)}</p>
