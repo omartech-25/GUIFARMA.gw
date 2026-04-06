@@ -1,6 +1,6 @@
 
 import React, { useState, useRef } from 'react';
-import { Search, Plus, ShoppingCart, Trash2, CheckCircle2, ReceiptText, X, Package, Calendar, Download, Printer } from 'lucide-react';
+import { Search, Plus, ShoppingCart, Trash2, CheckCircle2, ReceiptText, X, Package, Calendar, Download, Printer, Edit } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Product, Purchase, PurchaseItem, Batch, PharmaceuticalForm } from '../types';
@@ -10,10 +10,12 @@ interface PurchaseManagementProps {
   products: Product[];
   purchases: Purchase[];
   onAddPurchase: (purchase: Purchase) => void;
+  onUpdatePurchase: (purchase: Purchase) => void;
+  onDeletePurchase: (purchaseId: string) => void;
   onUpdateProduct: (product: Product) => void;
 }
 
-const PurchaseManagement: React.FC<PurchaseManagementProps> = ({ products, purchases, onAddPurchase, onUpdateProduct }) => {
+const PurchaseManagement: React.FC<PurchaseManagementProps> = ({ products, purchases, onAddPurchase, onUpdatePurchase, onDeletePurchase, onUpdateProduct }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [cart, setCart] = useState<PurchaseItem[]>([]);
@@ -22,6 +24,10 @@ const PurchaseManagement: React.FC<PurchaseManagementProps> = ({ products, purch
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [isInvoiceViewOpen, setIsInvoiceViewOpen] = useState(false);
   const [viewingPurchase, setViewingPurchase] = useState<Purchase | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingPurchase, setEditingPurchase] = useState<Purchase | null>(null);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [purchaseToDelete, setPurchaseToDelete] = useState<Purchase | null>(null);
   const invoiceRef = useRef<HTMLDivElement>(null);
 
   const cartTotal = Math.round(cart.reduce((sum, item) => sum + item.total, 0));
@@ -492,6 +498,99 @@ const PurchaseManagement: React.FC<PurchaseManagementProps> = ({ products, purch
                 className="bg-slate-900 text-white px-8 py-3 rounded-xl font-bold hover:bg-slate-800 transition-all shadow-lg"
               >
                 Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Edit Purchase Modal */}
+      {isEditModalOpen && editingPurchase && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-900/80 backdrop-blur-md p-4">
+          <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl p-10 space-y-6">
+            <div className="flex justify-between items-center">
+              <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Editar Compra {editingPurchase.invoiceNumber}</h3>
+              <button onClick={() => setIsEditModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                <X size={24} />
+              </button>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nº Fatura</label>
+                <input 
+                  type="text" 
+                  className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none font-bold"
+                  value={editingPurchase.invoiceNumber}
+                  onChange={e => setEditingPurchase({ ...editingPurchase, invoiceNumber: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fornecedor</label>
+                <input 
+                  type="text" 
+                  className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none font-bold"
+                  value={editingPurchase.supplier}
+                  onChange={e => setEditingPurchase({ ...editingPurchase, supplier: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Data</label>
+                <input 
+                  type="date" 
+                  className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none font-bold"
+                  value={editingPurchase.date.split('T')[0]}
+                  onChange={e => setEditingPurchase({ ...editingPurchase, date: new Date(e.target.value).toISOString() })}
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-4 pt-6">
+              <button 
+                onClick={() => setIsEditModalOpen(false)}
+                className="flex-1 py-4 bg-slate-100 text-slate-400 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-200 transition-all"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={() => {
+                  onUpdatePurchase(editingPurchase);
+                  setIsEditModalOpen(false);
+                }}
+                className="flex-1 py-4 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-200"
+              >
+                Salvar Alterações
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Purchase Confirmation Modal */}
+      {isDeleteConfirmOpen && purchaseToDelete && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-900/80 backdrop-blur-md p-4">
+          <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md p-10 text-center space-y-6">
+            <div className="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Trash2 size={40} />
+            </div>
+            <div>
+              <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Eliminar Compra</h3>
+              <p className="text-slate-500 mt-2">Tem certeza que deseja eliminar a compra <strong>{purchaseToDelete.invoiceNumber}</strong>? Esta ação não pode ser desfeita.</p>
+            </div>
+            <div className="flex flex-col gap-3 pt-4">
+              <button 
+                onClick={() => {
+                  onDeletePurchase(purchaseToDelete.id);
+                  setIsDeleteConfirmOpen(false);
+                }}
+                className="w-full py-4 bg-red-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-red-700 transition-all shadow-xl shadow-red-200"
+              >
+                Eliminar Definitivamente
+              </button>
+              <button 
+                onClick={() => setIsDeleteConfirmOpen(false)}
+                className="w-full py-4 bg-slate-100 text-slate-400 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-200 transition-all"
+              >
+                Cancelar
               </button>
             </div>
           </div>

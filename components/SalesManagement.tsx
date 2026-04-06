@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Search, Plus, ShoppingCart, Users, Trash2, CheckCircle2, Pill, ReceiptText, X, Filter, TrendingUp, Calendar, CreditCard, ArrowRight, Barcode, AlertTriangle, Printer, Download, Share2, ArrowUpRight, ArrowDownRight, LayoutGrid, List } from 'lucide-react';
+import { Search, Plus, ShoppingCart, Users, Trash2, CheckCircle2, Pill, ReceiptText, X, Filter, TrendingUp, Calendar, CreditCard, ArrowRight, Barcode, AlertTriangle, Printer, Download, Share2, ArrowUpRight, ArrowDownRight, LayoutGrid, List, Edit } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -17,6 +17,7 @@ interface SalesManagementProps {
   currentUser: User | null;
   onAddSale: (sale: Sale) => void;
   onUpdateSale: (sale: Sale) => void;
+  onDeleteSale: (saleId: string) => void;
   onUpdateProduct: (product: Product) => void;
   onAddCreditNote: (creditNote: CreditNote) => void;
   onPDVClose?: () => void;
@@ -31,6 +32,7 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
   currentUser,
   onAddSale, 
   onUpdateSale, 
+  onDeleteSale,
   onUpdateProduct, 
   onAddCreditNote,
   onPDVClose
@@ -38,6 +40,10 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
   const [isPDVOpen, setIsPDVOpen] = useState(!!initialProductId);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingSale, setEditingSale] = useState<Sale | null>(null);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [saleToDelete, setSaleToDelete] = useState<Sale | null>(null);
 
   React.useEffect(() => {
     if (initialProductId) {
@@ -665,6 +671,28 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
                   </td>
                   <td className="px-8 py-5 text-right">
                     <div className="flex items-center justify-end gap-2">
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingSale(sale);
+                          setIsEditModalOpen(true);
+                        }}
+                        className="p-2 text-slate-300 hover:text-amber-600 hover:bg-amber-50 rounded-xl transition-all"
+                        title="Editar Fatura"
+                      >
+                        <Edit size={18} />
+                      </button>
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSaleToDelete(sale);
+                          setIsDeleteConfirmOpen(true);
+                        }}
+                        className="p-2 text-slate-300 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
+                        title="Eliminar Fatura"
+                      >
+                        <Trash2 size={18} />
+                      </button>
                       <button 
                         onClick={(e) => {
                           e.stopPropagation();
@@ -1700,6 +1728,116 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
             <div>
               <p className="font-black text-sm uppercase tracking-tighter">ERRO</p>
               <p className="text-red-50 text-xs">{errorToast.message}</p>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Edit Sale Modal */}
+      {isEditModalOpen && editingSale && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-900/80 backdrop-blur-md p-4">
+          <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl p-10 space-y-6">
+            <div className="flex justify-between items-center">
+              <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Editar Fatura {editingSale.invoiceNumber}</h3>
+              <button onClick={() => setIsEditModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                <X size={24} />
+              </button>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Cliente</label>
+                <select 
+                  className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none font-bold"
+                  value={editingSale.clientId}
+                  onChange={e => {
+                    const client = clients.find(c => c.id === e.target.value);
+                    if (client) {
+                      setEditingSale({ ...editingSale, clientId: client.id, clientName: client.name });
+                    }
+                  }}
+                >
+                  {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Data</label>
+                <input 
+                  type="date" 
+                  className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none font-bold"
+                  value={editingSale.date.split('T')[0]}
+                  onChange={e => setEditingSale({ ...editingSale, date: new Date(e.target.value).toISOString() })}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</label>
+                <select 
+                  className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none font-bold"
+                  value={editingSale.status}
+                  onChange={e => setEditingSale({ ...editingSale, status: e.target.value as SaleStatus })}
+                >
+                  {Object.values(SaleStatus).map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Método de Pagamento</label>
+                <select 
+                  className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none font-bold"
+                  value={editingSale.paymentMethod}
+                  onChange={e => setEditingSale({ ...editingSale, paymentMethod: e.target.value as PaymentMethod })}
+                >
+                  {Object.values(PaymentMethod).map(pm => <option key={pm} value={pm}>{pm}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <div className="flex gap-4 pt-6">
+              <button 
+                onClick={() => setIsEditModalOpen(false)}
+                className="flex-1 py-4 bg-slate-100 text-slate-400 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-200 transition-all"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={() => {
+                  onUpdateSale(editingSale);
+                  setIsEditModalOpen(false);
+                }}
+                className="flex-1 py-4 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-200"
+              >
+                Salvar Alterações
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {isDeleteConfirmOpen && saleToDelete && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-900/80 backdrop-blur-md p-4">
+          <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md p-10 text-center space-y-6">
+            <div className="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Trash2 size={40} />
+            </div>
+            <div>
+              <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Eliminar Fatura</h3>
+              <p className="text-slate-500 mt-2">Tem certeza que deseja eliminar a fatura <strong>{saleToDelete.invoiceNumber}</strong>? Esta ação não pode ser desfeita.</p>
+            </div>
+            <div className="flex flex-col gap-3 pt-4">
+              <button 
+                onClick={() => {
+                  onDeleteSale(saleToDelete.id);
+                  setIsDeleteConfirmOpen(false);
+                }}
+                className="w-full py-4 bg-red-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-red-700 transition-all shadow-xl shadow-red-200"
+              >
+                Eliminar Definitivamente
+              </button>
+              <button 
+                onClick={() => setIsDeleteConfirmOpen(false)}
+                className="w-full py-4 bg-slate-100 text-slate-400 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-200 transition-all"
+              >
+                Cancelar
+              </button>
             </div>
           </div>
         </div>

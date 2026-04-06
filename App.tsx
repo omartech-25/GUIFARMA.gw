@@ -523,6 +523,25 @@ const App: React.FC = () => {
     };
     setSales(prev => prev.map(s => s.id === updatedSale.id ? saleWithAudit : s));
     dataService.saveSale(saleWithAudit).catch(console.error);
+    logActivity(ActivityType.UPDATE, `Venda ${updatedSale.invoiceNumber} editada`, `Total: ${updatedSale.total} CFA`, updatedSale.id, 'Sale');
+  };
+
+  const handleDeleteSale = async (saleId: string) => {
+    const saleToDelete = sales.find(s => s.id === saleId);
+    if (!saleToDelete) return;
+
+    setSales(prev => prev.filter(s => s.id !== saleId));
+    try {
+      setIsSyncing(true);
+      await dataService.deleteSale(saleId);
+      logActivity(ActivityType.DELETE, `Venda ${saleToDelete.invoiceNumber} excluída`, `Valor: ${saleToDelete.total} CFA`, saleId, 'Sale');
+      setNotification({ type: 'success', message: 'Venda excluída com sucesso.' });
+    } catch (error) {
+      console.error('Erro ao excluir venda:', error);
+      setNotification({ type: 'error', message: 'Erro ao excluir a venda no banco de dados.' });
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   const handleAddPurchase = async (newPurchase: Purchase) => {
@@ -540,6 +559,43 @@ const App: React.FC = () => {
       logActivity(ActivityType.PURCHASE, `Nova compra registada: ${newPurchase.invoiceNumber}`, `Fornecedor: ${newPurchase.supplier}. Total: ${newPurchase.total} CFA`, newPurchase.id, 'Purchase');
     } catch (error) {
       setNotification({ type: 'error', message: 'Erro ao registar compra.' });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleUpdatePurchase = async (updatedPurchase: Purchase) => {
+    const purchaseWithAudit = {
+      ...updatedPurchase,
+      updatedBy: currentUser?.name || 'Sistema',
+      updatedAt: new Date().toISOString()
+    };
+    setPurchases(prev => prev.map(p => p.id === updatedPurchase.id ? purchaseWithAudit : p));
+    try {
+      setIsSyncing(true);
+      await dataService.savePurchase(purchaseWithAudit);
+      logActivity(ActivityType.UPDATE, `Compra ${updatedPurchase.invoiceNumber} editada`, `Fornecedor: ${updatedPurchase.supplier}. Total: ${updatedPurchase.total} CFA`, updatedPurchase.id, 'Purchase');
+      setNotification({ type: 'success', message: 'Compra atualizada com sucesso.' });
+    } catch (error) {
+      setNotification({ type: 'error', message: 'Erro ao atualizar compra.' });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleDeletePurchase = async (purchaseId: string) => {
+    const purchaseToDelete = purchases.find(p => p.id === purchaseId);
+    if (!purchaseToDelete) return;
+
+    setPurchases(prev => prev.filter(p => p.id !== purchaseId));
+    try {
+      setIsSyncing(true);
+      await dataService.deletePurchase(purchaseId);
+      logActivity(ActivityType.DELETE, `Compra ${purchaseToDelete.invoiceNumber} excluída`, `Fornecedor: ${purchaseToDelete.supplier}`, purchaseId, 'Purchase');
+      setNotification({ type: 'success', message: 'Compra excluída com sucesso.' });
+    } catch (error) {
+      console.error('Erro ao excluir compra:', error);
+      setNotification({ type: 'error', message: 'Erro ao excluir a compra no banco de dados.' });
     } finally {
       setIsSyncing(false);
     }
@@ -788,6 +844,8 @@ const App: React.FC = () => {
             products={products}
             purchases={purchases}
             onAddPurchase={handleAddPurchase}
+            onUpdatePurchase={handleUpdatePurchase}
+            onDeletePurchase={handleDeletePurchase}
             onUpdateProduct={handleUpdateProduct}
           />
         );
@@ -802,6 +860,7 @@ const App: React.FC = () => {
             currentUser={currentUser}
             onAddSale={handleAddSale}
             onUpdateSale={handleUpdateSale}
+            onDeleteSale={handleDeleteSale}
             onUpdateProduct={handleUpdateProduct}
             onAddCreditNote={handleAddCreditNote}
             onPDVClose={() => setPreSelectedProductId(undefined)}
