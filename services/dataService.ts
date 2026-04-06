@@ -9,8 +9,28 @@ export const dataService = {
     return data as User[];
   },
   async saveUser(user: User) {
-    const { error } = await supabase.from('users').upsert(user);
-    if (error) throw error;
+    // Mapeamento para garantir compatibilidade com o banco de dados
+    const userData = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      password: user.password,
+      role: user.role,
+      status: user.status,
+      employee_name: user.employeeName,
+      permissions: user.permissions
+    };
+    
+    const { error } = await supabase.from('users').upsert(userData);
+    if (error) {
+      console.error('Erro ao salvar usuário no Supabase:', error);
+      throw error;
+    }
+  },
+  async checkEmailExists(email: string): Promise<boolean> {
+    const { data, error } = await supabase.from('users').select('id').eq('email', email.toLowerCase()).maybeSingle();
+    if (error) return false;
+    return !!data;
   },
   async deleteUser(id: string) {
     const { error } = await supabase.from('users').delete().eq('id', id);

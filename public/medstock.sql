@@ -1,99 +1,90 @@
 
 -- ==========================================================
--- MedStock Pro - Base de Dados SQL (MySQL/MariaDB)
--- Versão: 1.0.0
+-- MedStock Pro - Base de Dados PostgreSQL (Supabase)
+-- Versão: 1.1.0
 -- Descrição: Sistema de gestão de stock grossista para Guiné-Bissau
 -- ==========================================================
 
-CREATE DATABASE IF NOT EXISTS medstock CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE medstock;
-
--- 1. TABELA DE USUÁRIOS (CONTROLE DE ACESSOS)
+-- 1. TABELA DE USUÁRIOS
 CREATE TABLE IF NOT EXISTS users (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    email VARCHAR(100) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    role ENUM('Administrador', 'Gestor de Estoque', 'Vendedor', 'Contabilista', 'Supervisor') DEFAULT 'Vendedor',
-    avatar_url VARCHAR(255),
-    status ENUM('Ativo', 'Inativo') DEFAULT 'Ativo',
-    last_login DATETIME,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) ENGINE=InnoDB;
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    password TEXT NOT NULL,
+    role TEXT DEFAULT 'Vendedor',
+    status TEXT DEFAULT 'Ativo',
+    employee_name TEXT,
+    permissions JSONB,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
 
 -- 2. TABELA DE FORNECEDORES
 CREATE TABLE IF NOT EXISTS suppliers (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(150) NOT NULL,
-    nif VARCHAR(20) UNIQUE,
-    contact_name VARCHAR(100),
-    phone VARCHAR(50),
-    email VARCHAR(100),
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    nif TEXT UNIQUE,
+    contact_name TEXT,
+    phone TEXT,
+    email TEXT,
     address TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB;
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
 
--- 3. TABELA DE CLIENTES (FARMÁCIAS / HOSPITAIS)
+-- 3. TABELA DE CLIENTES
 CREATE TABLE IF NOT EXISTS clients (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(150) NOT NULL,
-    type ENUM('Farmácia', 'Hospital', 'ONG') DEFAULT 'Farmácia',
-    nif VARCHAR(20) UNIQUE,
-    contact_phone VARCHAR(50) NOT NULL,
-    email VARCHAR(100),
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    type TEXT DEFAULT 'Farmácia',
+    nif TEXT UNIQUE,
+    contact_phone TEXT NOT NULL,
+    email TEXT,
     address TEXT,
     credit_limit DECIMAL(15, 2) DEFAULT 0.00,
-    current_balance DECIMAL(15, 2) DEFAULT 0.00, -- Dívida atual
-    status ENUM('Ativo', 'Bloqueado') DEFAULT 'Ativo',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB;
+    balance DECIMAL(15, 2) DEFAULT 0.00,
+    status TEXT DEFAULT 'Ativo',
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
 
--- 4. TABELA DE PRODUTOS (MEDICAMENTOS)
+-- 4. TABELA DE PRODUTOS
 CREATE TABLE IF NOT EXISTS products (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    code VARCHAR(50) UNIQUE NOT NULL,
-    name VARCHAR(150) NOT NULL,
-    category ENUM('Antibiótico', 'Analgésico', 'Antiviral', 'Suplemento', 'Dermatologia', 'Outro') NOT NULL,
-    supplier_id INT,
-    selling_price_wholesale DECIMAL(15, 2) NOT NULL, -- Preço por unidade
+    id TEXT PRIMARY KEY,
+    code TEXT UNIQUE NOT NULL,
+    name TEXT NOT NULL,
+    category TEXT NOT NULL,
+    supplier_id TEXT REFERENCES suppliers(id),
+    selling_price_wholesale DECIMAL(15, 2) NOT NULL,
     min_stock_alert INT DEFAULT 100,
     units_per_box INT DEFAULT 1,
     description TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (supplier_id) REFERENCES suppliers(id) ON DELETE SET NULL
-) ENGINE=InnoDB;
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
 
--- 5. TABELA DE LOTES (ESTOQUE REAL)
+-- 5. TABELA DE LOTES
 CREATE TABLE IF NOT EXISTS batches (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    product_id INT NOT NULL,
-    batch_number VARCHAR(50) NOT NULL,
+    id TEXT PRIMARY KEY,
+    product_id TEXT REFERENCES products(id) ON DELETE CASCADE,
+    batch_number TEXT NOT NULL,
     expiry_date DATE NOT NULL,
     initial_quantity INT NOT NULL,
     current_quantity INT NOT NULL,
     purchase_price DECIMAL(15, 2) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
-    INDEX (expiry_date),
-    INDEX (batch_number)
-) ENGINE=InnoDB;
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
 
--- 6. TABELA DE VENDAS (CABEÇALHO)
+-- 6. TABELA DE VENDAS
 CREATE TABLE IF NOT EXISTS sales (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    invoice_number VARCHAR(50) UNIQUE NOT NULL,
-    date DATETIME DEFAULT CURRENT_TIMESTAMP,
-    client_id INT NOT NULL,
-    total_amount DECIMAL(15, 2) NOT NULL,
-    discount_amount DECIMAL(15, 2) DEFAULT 0.00,
-    net_amount DECIMAL(15, 2) NOT NULL,
-    payment_method ENUM('Dinheiro', 'Transferência', 'Crédito (Fiado)') NOT NULL,
-    seller_id INT NOT NULL,
-    status ENUM('Concluída', 'Cancelada', 'Pendente') DEFAULT 'Concluída',
-    FOREIGN KEY (client_id) REFERENCES clients(id),
-    FOREIGN KEY (seller_id) REFERENCES users(id)
-) ENGINE=InnoDB;
+    id TEXT PRIMARY KEY,
+    invoice_number TEXT UNIQUE NOT NULL,
+    date TIMESTAMPTZ DEFAULT NOW(),
+    client_id TEXT REFERENCES clients(id),
+    total DECIMAL(15, 2) NOT NULL,
+    discount DECIMAL(15, 2) DEFAULT 0.00,
+    taxable_base DECIMAL(15, 2) NOT NULL,
+    payment_method TEXT NOT NULL,
+    seller_id TEXT REFERENCES users(id),
+    status TEXT DEFAULT 'Pago'
+);
 
 -- 7. TABELA DE ITENS DA VENDA
 CREATE TABLE IF NOT EXISTS sale_items (

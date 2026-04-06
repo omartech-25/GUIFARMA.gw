@@ -228,11 +228,23 @@ const App: React.FC = () => {
     });
   };
 
-  const handleRegister = async (name: string, email: string, pass: string) => {
+  const handleRegister = async (name: string, email: string, pass: string): Promise<{ success: boolean; error?: string }> => {
     try {
       setIsSyncing(true);
+      
+      // Verificar se o email já existe no estado local ou no banco de dados
+      const existingInLocal = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+      if (existingInLocal) {
+        return { success: false, error: 'Este email já está cadastrado.' };
+      }
+
+      const existingInDB = await dataService.checkEmailExists(email);
+      if (existingInDB) {
+        return { success: false, error: 'Este email já está em uso. Tente outro.' };
+      }
+
       const newUser: User = {
-        id: `u-${Date.now()}`,
+        id: Date.now().toString(), // Usar apenas números para ser mais compatível com colunas INT
         name: name.split(' ')[0], // Login name
         employeeName: name,
         email: email,
@@ -241,12 +253,6 @@ const App: React.FC = () => {
         status: 'Inativo', // Aguardando aprovação
         permissions: ROLE_PERMISSIONS[UserRole.SELLER]
       };
-
-      // Verificar se o email já existe
-      const existingUser = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-      if (existingUser) {
-        return false;
-      }
 
       await dataService.saveUser(newUser);
       setUsers(prev => [...prev, newUser]);
@@ -265,10 +271,21 @@ const App: React.FC = () => {
       };
       dataService.saveActivityLog(registerLog).catch(console.error);
       
-      return true;
-    } catch (error) {
-      console.error('Erro ao registrar usuário:', error);
-      return false;
+      setNotification({ type: 'success', message: 'Conta criada! Aguarde a aprovação do administrador.' });
+      return { success: true };
+    } catch (error: any) {
+      console.error('Erro detalhado ao registrar usuário:', error);
+      
+      let errorMessage = 'Erro ao criar conta. Tente novamente.';
+      
+      // Se for erro de duplicidade no Supabase (23505 é o código do Postgres para unique violation)
+      if (error.code === '23505' || (error.message && error.message.includes('unique constraint'))) {
+        errorMessage = 'Este email já está em uso. Tente outro.';
+      } else if (error.message && error.message.includes('column "permissions" of relation "users" does not exist')) {
+        errorMessage = 'Erro de esquema no banco de dados. Contate o suporte.';
+      }
+      
+      return { success: false, error: errorMessage };
     } finally {
       setIsSyncing(false);
     }

@@ -4,7 +4,7 @@ import { Lock, Mail, Loader2, AlertCircle, ArrowRight, Info, Eye, EyeOff, CheckC
 
 interface LoginProps {
   onLogin: (email: string, pass: string) => Promise<boolean>;
-  onRegister: (name: string, email: string, pass: string) => Promise<boolean>;
+  onRegister: (name: string, email: string, pass: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 const Login: React.FC<LoginProps> = ({ onLogin, onRegister }) => {
@@ -83,9 +83,9 @@ const Login: React.FC<LoginProps> = ({ onLogin, onRegister }) => {
       }
 
       setIsLoading(true);
-      const success = await onRegister(name, email, password);
+      const result = await onRegister(name, email, password);
       
-      if (success) {
+      if (result.success) {
         setIsSuccess(true);
         setSuccessMessage('Conta criada com sucesso!');
         setTimeout(() => {
@@ -96,7 +96,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onRegister }) => {
           setConfirmPassword('');
         }, 2000);
       } else {
-        setError('Erro ao criar conta. Tente outro email.');
+        setError(result.error || 'Erro ao criar conta. Tente outro email.');
         setIsLoading(false);
       }
     } else if (mode === 'forgot') {
@@ -141,15 +141,8 @@ const Login: React.FC<LoginProps> = ({ onLogin, onRegister }) => {
       </div>
 
       <div className="space-y-2">
-        <div className="flex justify-between items-center px-1">
+        <div className="px-1">
           <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Palavra-passe</label>
-          <button 
-            type="button" 
-            onClick={() => { setMode('forgot'); setError(null); }}
-            className="text-[10px] font-black text-emerald-500 uppercase tracking-widest hover:text-emerald-400 transition-colors"
-          >
-            Esqueci minha senha
-          </button>
         </div>
         <div className="relative group">
           <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-emerald-400 transition-colors" size={20} />
@@ -208,13 +201,20 @@ const Login: React.FC<LoginProps> = ({ onLogin, onRegister }) => {
         )}
       </button>
       
-      <div className="text-center">
+      <div className="text-center flex flex-col gap-3">
         <button 
           type="button" 
           onClick={() => { setMode('register'); setError(null); }}
           className="text-xs font-bold text-slate-500 hover:text-emerald-400 transition-colors"
         >
           Não tem uma conta? <span className="text-emerald-500">Criar conta</span>
+        </button>
+        <button 
+          type="button" 
+          onClick={() => { setMode('forgot'); setError(null); }}
+          className="text-[10px] font-black text-emerald-500 uppercase tracking-widest hover:text-emerald-400 transition-colors"
+        >
+          Esqueci minha senha
         </button>
       </div>
     </form>
