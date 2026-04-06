@@ -145,8 +145,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, UserPermissions> = {
 
 export const MOCK_USER: User = {
   id: 'u1',
-  name: 'António Silva',
-  employeeName: 'António Silva',
+  name: 'UMARO GANHA BALDE',
+  employeeName: 'UMARO GANHA BALDE',
   role: UserRole.ADMIN,
   email: 'admin@medstock.pro',
   password: 'admin',

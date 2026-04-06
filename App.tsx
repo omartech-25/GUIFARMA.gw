@@ -92,7 +92,7 @@ const App: React.FC = () => {
           MOCK_USER,
           { id: 'u2', name: 'Mamadú Baldé', email: 'mamadu@medstock.pro', password: 'admin', role: UserRole.STOCK_MANAGER, employeeName: 'Mamadú Baldé', status: 'Ativo', permissions: ROLE_PERMISSIONS[UserRole.STOCK_MANAGER] },
           { id: 'u3', name: 'Fatu Djalo', email: 'fatu@medstock.pro', password: 'admin', role: UserRole.SELLER, employeeName: 'Fatu Djalo', status: 'Ativo', permissions: ROLE_PERMISSIONS[UserRole.SELLER] },
-          { id: 'u4', name: 'Usuário Teste', email: 'az965125324@gmail.com', password: 'admin', role: UserRole.ADMIN, employeeName: 'Usuário Teste', status: 'Ativo', permissions: ROLE_PERMISSIONS[UserRole.ADMIN] }
+          { id: 'u4', name: 'UMARO GANHA BALDE', email: 'az965125324@gmail.com', password: 'admin', role: UserRole.ADMIN, employeeName: 'UMARO GANHA BALDE', status: 'Ativo', permissions: ROLE_PERMISSIONS[UserRole.ADMIN] }
         ];
 
         const mergedUsers = [...dbUsers];
