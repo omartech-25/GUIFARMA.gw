@@ -62,6 +62,10 @@ export const dataService = {
     const { error } = await supabase.from('sales').upsert(sale);
     if (error) throw error;
   },
+  async deleteSale(id: string) {
+    const { error } = await supabase.from('sales').delete().eq('id', id);
+    if (error) throw error;
+  },
 
   // Clients
   async getClients(): Promise<Client[]> {
@@ -73,6 +77,10 @@ export const dataService = {
     const { error } = await supabase.from('clients').upsert(client);
     if (error) throw error;
   },
+  async deleteClient(id: string) {
+    const { error } = await supabase.from('clients').delete().eq('id', id);
+    if (error) throw error;
+  },
 
   // Purchases
   async getPurchases(): Promise<Purchase[]> {
@@ -82,6 +90,10 @@ export const dataService = {
   },
   async savePurchase(purchase: Purchase) {
     const { error } = await supabase.from('purchases').upsert(purchase);
+    if (error) throw error;
+  },
+  async deletePurchase(id: string) {
+    const { error } = await supabase.from('purchases').delete().eq('id', id);
     if (error) throw error;
   },
 
