@@ -57,6 +57,8 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
       }
     }
   }, [initialProductId, products]);
+  const [manualInvoiceNumber, setManualInvoiceNumber] = useState('');
+  const [manualInvoiceYear, setManualInvoiceYear] = useState('');
   const [listSearchTerm, setListSearchTerm] = useState('');
   const [cart, setCart] = useState<SaleItem[]>([]);
   const [selectedClientId, setSelectedClientId] = useState('');
@@ -332,7 +334,9 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
     
     const newSale: Sale = {
       id: `s-${Date.now()}`,
-      invoiceNumber: `GF-${now.getFullYear()}-${(sales.length + 100).toString().padStart(6, '0')}`,
+      invoiceNumber: manualInvoiceNumber && manualInvoiceYear 
+        ? `GF-${manualInvoiceYear}-${manualInvoiceNumber.padStart(6, '0')}`
+        : `GF-${now.getFullYear()}-${(sales.length + 100).toString().padStart(6, '0')}`,
       date: now.toISOString(),
       dueDate: dueDate.toISOString(),
       clientId: selectedClientId,
@@ -378,6 +382,8 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
     setDiscount(0);
     setObservations('');
     setPaymentReference('');
+    setManualInvoiceNumber('');
+    setManualInvoiceYear('');
     setIsInvoiceOpen(true);
     setIsPDVOpen(false);
     onPDVClose?.();
@@ -1184,6 +1190,29 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
                     </div>
                   )}
 
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nº Fatura (Manual)</label>
+                      <input 
+                        type="text" 
+                        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none font-bold"
+                        placeholder="Ex: 000001"
+                        value={manualInvoiceNumber}
+                        onChange={e => setManualInvoiceNumber(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Ano (Manual)</label>
+                      <input 
+                        type="text" 
+                        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none font-bold"
+                        placeholder={`Ex: ${new Date().getFullYear()}`}
+                        value={manualInvoiceYear}
+                        onChange={e => setManualInvoiceYear(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Observações (Opcional)</label>
                     <textarea 
@@ -1347,8 +1376,23 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
             <div className="p-12 bg-white text-black font-sans print:p-4">
               <div ref={invoiceRef} className="max-w-[800px] mx-auto border-2 border-black p-8 invoice-print">
                 {/* Header */}
-                <div className="flex justify-end mb-4">
-                  <p className="text-sm font-bold">Email: guifarma.distribuicao@gmail.com</p>
+                <div className="flex justify-between items-start mb-12">
+                  <div className="flex flex-col items-center">
+                    <div className="w-24 h-24 border-[6px] border-black rounded-full flex items-center justify-center mb-2 relative">
+                      <div className="w-14 h-5 bg-black absolute"></div>
+                      <div className="w-5 h-14 bg-black absolute"></div>
+                    </div>
+                    <h1 className="text-2xl font-black tracking-tight leading-none">GUIFARMA</h1>
+                    <p className="text-[11px] font-bold mt-1">Comércio de Produtos Farmacêuticos</p>
+                  </div>
+                  <div className="text-right text-[13px] space-y-1 font-medium">
+                    <p>Rua Eduardo Mondelane Edifício Mavegro</p>
+                    <p>Bissau</p>
+                    <p>Contribuinte: 510019285</p>
+                    <p>Whatsapp: 002455142629</p>
+                    <p>Tel: 955142629 / 965025657</p>
+                    <p>Email: guifarma.distribuicao@gmail.com</p>
+                  </div>
                 </div>
                 
                 <div className="flex justify-center mb-8">
