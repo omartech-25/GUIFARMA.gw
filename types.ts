@@ -20,6 +20,7 @@ export interface UserPermissions {
   registerCardMachines: boolean;
   
   // CONTROLE DE ESTOQUE
+  viewStock: boolean;
   stockEntry: boolean;
   
   // MENU FINANCEIRO

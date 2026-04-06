@@ -29,6 +29,9 @@ const StockManagement: React.FC<StockManagementProps> = ({
   onStartSale,
   onAddPurchase
 }) => {
+  const canEdit = currentUser?.permissions.registerProducts;
+  const canEntry = currentUser?.permissions.stockEntry;
+
   const [activeTab, setActiveTab] = useState<StockTab>('inventory');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(products[0] || null);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
@@ -372,13 +375,15 @@ const StockManagement: React.FC<StockManagementProps> = ({
         {/* Toolbar */}
         <div className="bg-white border-x border-slate-200 p-4 flex flex-wrap gap-4 items-center shadow-sm">
           <div className="flex gap-2">
-            <button 
-              onClick={handleNew}
-              className="bg-amber-500 text-white px-6 py-2 rounded-full font-bold text-[10px] uppercase tracking-widest flex items-center gap-2 hover:bg-amber-600 transition-all shadow-md"
-            >
-              <Plus size={16} />
-              Novo
-            </button>
+            {canEdit && (
+              <button 
+                onClick={handleNew}
+                className="bg-amber-500 text-white px-6 py-2 rounded-full font-bold text-[10px] uppercase tracking-widest flex items-center gap-2 hover:bg-amber-600 transition-all shadow-md"
+              >
+                <Plus size={16} />
+                Novo
+              </button>
+            )}
             <button 
               onClick={() => setIsSearchModalOpen(true)}
               className="bg-amber-500 text-white px-6 py-2 rounded-full font-bold text-[10px] uppercase tracking-widest flex items-center gap-2 hover:bg-amber-600 transition-all shadow-md"
@@ -386,14 +391,16 @@ const StockManagement: React.FC<StockManagementProps> = ({
               <Search size={16} />
               Localizar
             </button>
-            <button 
-              onClick={() => setActiveTab('purchases')}
-              disabled={!selectedProduct}
-              className="bg-blue-600 text-white px-6 py-2 rounded-full font-bold text-[10px] uppercase tracking-widest flex items-center gap-2 hover:bg-blue-700 transition-all shadow-md disabled:opacity-50"
-            >
-              <Plus size={16} />
-              Entrada
-            </button>
+            {canEntry && (
+              <button 
+                onClick={() => setActiveTab('purchases')}
+                disabled={!selectedProduct}
+                className="bg-blue-600 text-white px-6 py-2 rounded-full font-bold text-[10px] uppercase tracking-widest flex items-center gap-2 hover:bg-blue-700 transition-all shadow-md disabled:opacity-50"
+              >
+                <Plus size={16} />
+                Entrada
+              </button>
+            )}
           </div>
           
           {/* Search Bar in Toolbar */}
@@ -409,21 +416,25 @@ const StockManagement: React.FC<StockManagementProps> = ({
           </div>
           
           <div className="flex gap-2">
-            <button 
-              onClick={() => handleSave()}
-              className="bg-amber-500 text-white px-6 py-2 rounded-full font-bold text-[10px] uppercase tracking-widest flex items-center gap-2 hover:bg-amber-600 transition-all shadow-md"
-            >
-              <Save size={16} />
-              Salvar
-            </button>
-            <button 
-              onClick={handleDelete}
-              disabled={!selectedProduct}
-              className="bg-slate-200 text-slate-600 px-6 py-2 rounded-full font-bold text-[10px] uppercase tracking-widest flex items-center gap-2 hover:bg-slate-300 transition-all shadow-md disabled:opacity-50"
-            >
-              <Trash2 size={16} />
-              Excluir
-            </button>
+            {canEdit && (
+              <button 
+                onClick={() => handleSave()}
+                className="bg-amber-500 text-white px-6 py-2 rounded-full font-bold text-[10px] uppercase tracking-widest flex items-center gap-2 hover:bg-amber-600 transition-all shadow-md"
+              >
+                <Save size={16} />
+                Salvar
+              </button>
+            )}
+            {canEdit && (
+              <button 
+                onClick={handleDelete}
+                disabled={!selectedProduct}
+                className="bg-slate-200 text-slate-600 px-6 py-2 rounded-full font-bold text-[10px] uppercase tracking-widest flex items-center gap-2 hover:bg-slate-300 transition-all shadow-md disabled:opacity-50"
+              >
+                <Trash2 size={16} />
+                Excluir
+              </button>
+            )}
           </div>
         </div>
 
@@ -432,11 +443,11 @@ const StockManagement: React.FC<StockManagementProps> = ({
           {[
             { id: 'inventory', label: 'Inventário Geral' },
             { id: 'details', label: 'Dados do Produto' },
-            { id: 'sales', label: 'Vendas' },
-            { id: 'sales_history', label: 'Histórico de Vendas' },
-            { id: 'purchases', label: 'Compras' },
-            { id: 'purchases_history', label: 'Histórico de Compras' },
-          ].map((tab) => (
+            { id: 'sales', label: 'Vendas', hidden: !currentUser?.permissions.sales },
+            { id: 'sales_history', label: 'Histórico de Vendas', hidden: !currentUser?.permissions.sales },
+            { id: 'purchases', label: 'Compras', hidden: !canEntry },
+            { id: 'purchases_history', label: 'Histórico de Compras', hidden: !canEntry },
+          ].filter(tab => !tab.hidden).map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as StockTab)}
@@ -465,13 +476,15 @@ const StockManagement: React.FC<StockManagementProps> = ({
                     <AlertTriangle size={16} className="animate-pulse" />
                     <span className="text-[10px] font-black uppercase">Vencidos/Próx: {products.filter(p => p.batches.some(b => new Date(b.expiryDate) < new Date(Date.now() + 90 * 24 * 60 * 60 * 1000))).length}</span>
                   </div>
-                  <button 
-                    onClick={handleRemoveAllExpired}
-                    className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all shadow-md"
-                  >
-                    <Trash2 size={16} />
-                    <span className="text-[10px] font-black uppercase">Limpar Vencidos</span>
-                  </button>
+                    {canEdit && (
+                      <button 
+                        onClick={handleRemoveAllExpired}
+                        className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all shadow-md"
+                      >
+                        <Trash2 size={16} />
+                        <span className="text-[10px] font-black uppercase">Limpar Vencidos</span>
+                      </button>
+                    )}
                 </div>
               </div>
 
@@ -507,23 +520,27 @@ const StockManagement: React.FC<StockManagementProps> = ({
                             <p className={`text-sm font-black ${isLowStock ? 'text-amber-600' : 'text-slate-900'}`}>{totalStock} un</p>
                           </div>
                           <div className="flex items-center gap-2">
-                            <button 
-                              onClick={() => onStartSale?.(product.id)}
-                              className="p-2 bg-emerald-50 border border-emerald-100 rounded-xl text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all shadow-sm"
-                              title="Vender este produto"
-                            >
-                              <ShoppingCart size={20} />
-                            </button>
-                            <button 
-                              onClick={() => {
-                                setSelectedProduct(product);
-                                setActiveTab('purchases');
-                              }}
-                              className="p-2 bg-blue-50 border border-blue-100 rounded-xl text-blue-600 hover:bg-blue-600 hover:text-white transition-all shadow-sm"
-                              title="Entrada de estoque"
-                            >
-                              <Plus size={20} />
-                            </button>
+                            {currentUser?.permissions.sales && (
+                              <button 
+                                onClick={() => onStartSale?.(product.id)}
+                                className="p-2 bg-emerald-50 border border-emerald-100 rounded-xl text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all shadow-sm"
+                                title="Vender este produto"
+                              >
+                                <ShoppingCart size={20} />
+                              </button>
+                            )}
+                            {canEntry && (
+                              <button 
+                                onClick={() => {
+                                  setSelectedProduct(product);
+                                  setActiveTab('purchases');
+                                }}
+                                className="p-2 bg-blue-50 border border-blue-100 rounded-xl text-blue-600 hover:bg-blue-600 hover:text-white transition-all shadow-sm"
+                                title="Entrada de estoque"
+                              >
+                                <Plus size={20} />
+                              </button>
+                            )}
                             <button 
                               onClick={() => {
                                 setSelectedProduct(product);
@@ -574,13 +591,15 @@ const StockManagement: React.FC<StockManagementProps> = ({
                                           <ThermometerSnowflake size={14} />
                                         </div>
                                       )}
-                                      <button 
-                                        onClick={() => handleRemoveBatch(product.id, batch.id)}
-                                        className="p-1 text-slate-300 hover:text-red-500 transition-colors"
-                                        title="Remover este lote"
-                                      >
-                                        <Trash2 size={14} />
-                                      </button>
+                                      {canEdit && (
+                                        <button 
+                                          onClick={() => handleRemoveBatch(product.id, batch.id)}
+                                          className="p-1 text-slate-300 hover:text-red-500 transition-colors"
+                                          title="Remover este lote"
+                                        >
+                                          <Trash2 size={14} />
+                                        </button>
+                                      )}
                                     </div>
                                   </div>
                                   <div className="space-y-2">
@@ -628,6 +647,7 @@ const StockManagement: React.FC<StockManagementProps> = ({
                     className="w-full md:col-span-4 px-4 py-2 bg-slate-50 border border-slate-200 rounded-full focus:ring-2 focus:ring-purple-500 outline-none text-sm font-medium"
                     placeholder="Código"
                     value={formData.code}
+                    disabled={!canEdit}
                     onChange={e => setFormData({...formData, code: e.target.value})}
                   />
                   <label className="md:col-span-2 text-[11px] font-bold text-slate-500 uppercase md:text-right md:pr-4">Lote:</label>
@@ -636,6 +656,7 @@ const StockManagement: React.FC<StockManagementProps> = ({
                     className="w-full md:col-span-3 px-4 py-2 bg-slate-50 border border-slate-200 rounded-full focus:ring-2 focus:ring-purple-500 outline-none text-sm font-medium"
                     placeholder="Lote"
                     value={formData.batch}
+                    disabled={!canEdit}
                     onChange={e => setFormData({...formData, batch: e.target.value})}
                   />
                 </div>
@@ -647,6 +668,7 @@ const StockManagement: React.FC<StockManagementProps> = ({
                     className="w-full md:col-span-4 px-4 py-2 bg-slate-50 border border-slate-200 rounded-full focus:ring-2 focus:ring-purple-500 outline-none text-sm font-medium"
                     placeholder="Nome comercial"
                     value={formData.name}
+                    disabled={!canEdit}
                     onChange={e => setFormData({...formData, name: e.target.value})}
                   />
                   <label className="md:col-span-2 text-[11px] font-bold text-slate-500 uppercase md:text-right md:pr-4">Validade:</label>
@@ -654,6 +676,7 @@ const StockManagement: React.FC<StockManagementProps> = ({
                     type="date" 
                     className="w-full md:col-span-3 px-4 py-2 bg-slate-50 border border-slate-200 rounded-full focus:ring-2 focus:ring-purple-500 outline-none text-sm font-medium"
                     value={formData.expiryDate}
+                    disabled={!canEdit}
                     onChange={e => setFormData({...formData, expiryDate: e.target.value})}
                   />
                 </div>
@@ -665,6 +688,7 @@ const StockManagement: React.FC<StockManagementProps> = ({
                     className="w-full md:col-span-9 px-4 py-2 bg-slate-50 border border-slate-200 rounded-full focus:ring-2 focus:ring-purple-500 outline-none text-sm font-medium"
                     placeholder="DCI (Ex: Paracetamol)"
                     value={formData.genericName}
+                    disabled={!canEdit}
                     onChange={e => setFormData({...formData, genericName: e.target.value})}
                   />
                 </div>
@@ -676,6 +700,7 @@ const StockManagement: React.FC<StockManagementProps> = ({
                     className="w-full md:col-span-4 px-4 py-2 bg-slate-50 border border-slate-200 rounded-full focus:ring-2 focus:ring-purple-500 outline-none text-sm font-medium"
                     placeholder="Ex: 500mg"
                     value={formData.dosage}
+                    disabled={!canEdit}
                     onChange={e => setFormData({...formData, dosage: e.target.value})}
                   />
                   <label className="md:col-span-2 text-[11px] font-bold text-slate-500 uppercase md:text-right md:pr-4">Reg. Sanit.:</label>
@@ -684,6 +709,7 @@ const StockManagement: React.FC<StockManagementProps> = ({
                     className="w-full md:col-span-3 px-4 py-2 bg-slate-50 border border-slate-200 rounded-full focus:ring-2 focus:ring-purple-500 outline-none text-sm font-medium"
                     placeholder="Registro"
                     value={formData.sanitaryRegistry}
+                    disabled={!canEdit}
                     onChange={e => setFormData({...formData, sanitaryRegistry: e.target.value})}
                   />
                 </div>
@@ -695,6 +721,7 @@ const StockManagement: React.FC<StockManagementProps> = ({
                     className="w-full md:col-span-9 px-4 py-2 bg-slate-50 border border-slate-200 rounded-full focus:ring-2 focus:ring-purple-500 outline-none text-sm font-medium"
                     placeholder="Laboratório / Fabricante"
                     value={formData.manufacturer}
+                    disabled={!canEdit}
                     onChange={e => setFormData({...formData, manufacturer: e.target.value})}
                   />
                 </div>
@@ -707,11 +734,14 @@ const StockManagement: React.FC<StockManagementProps> = ({
                       className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-full focus:ring-2 focus:ring-purple-500 outline-none text-sm font-medium"
                       placeholder="Custo"
                       value={formData.cost}
+                      disabled={!canEdit}
                       onChange={e => setFormData({...formData, cost: e.target.value})}
                     />
-                    <button type="button" className="absolute right-[-40px] top-1/2 -translate-y-1/2 w-8 h-8 bg-amber-500 text-white rounded-full flex items-center justify-center shadow-md hover:bg-amber-600 transition-all">
-                      <Calculator size={14} />
-                    </button>
+                    {canEdit && (
+                      <button type="button" className="absolute right-[-40px] top-1/2 -translate-y-1/2 w-8 h-8 bg-amber-500 text-white rounded-full flex items-center justify-center shadow-md hover:bg-amber-600 transition-all">
+                        <Calculator size={14} />
+                      </button>
+                    )}
                   </div>
                   <label className="md:col-span-2 text-[11px] font-bold text-slate-500 uppercase md:text-right md:pr-4">Preço:</label>
                   <input 
@@ -719,6 +749,7 @@ const StockManagement: React.FC<StockManagementProps> = ({
                     className="w-full md:col-span-3 px-4 py-2 bg-slate-50 border border-slate-200 rounded-full focus:ring-2 focus:ring-purple-500 outline-none text-sm font-medium"
                     placeholder="Preço"
                     value={formData.price}
+                    disabled={!canEdit}
                     onChange={e => setFormData({...formData, price: e.target.value})}
                   />
                 </div>
@@ -728,6 +759,7 @@ const StockManagement: React.FC<StockManagementProps> = ({
                   <select 
                     className="w-full md:col-span-4 px-4 py-2 bg-slate-50 border border-slate-200 rounded-full focus:ring-2 focus:ring-purple-500 outline-none text-sm font-medium appearance-none"
                     value={formData.unit}
+                    disabled={!canEdit}
                     onChange={e => setFormData({...formData, unit: e.target.value})}
                   >
                     <option value="UN">UNIDADE</option>

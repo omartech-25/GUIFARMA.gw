@@ -206,6 +206,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, currentUser, onA
     {
       title: 'CONTROLE DE ESTOQUE',
       permissions: [
+        { key: 'viewStock', label: 'Ver Estoque' },
         { key: 'stockEntry', label: 'Entrada de Estoque' }
       ]
     },

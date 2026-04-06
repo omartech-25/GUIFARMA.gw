@@ -32,7 +32,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setView, user, onLogout,
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'stock', label: 'Estoque', icon: Package, permission: 'registerProducts' },
+    { id: 'stock', label: 'Estoque', icon: Package, permission: 'viewStock' },
     { id: 'purchases', label: 'Entrada de Estoque', icon: Package, permission: 'stockEntry' },
     { id: 'sales', label: 'Vendas', icon: ShoppingCart, permission: 'sales' },
     { id: 'cash', label: 'Caixa', icon: Wallet, permission: 'cashClosing' },

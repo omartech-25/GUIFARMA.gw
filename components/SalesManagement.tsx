@@ -4,6 +4,7 @@ import { Search, Plus, ShoppingCart, Users, Trash2, CheckCircle2, Pill, ReceiptT
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { QRCodeSVG } from 'qrcode.react';
 import { Product, Sale, Client, PaymentMethod, SaleItem, Batch, SaleStatus, CreditNote, User, UserRole } from '../types';
 import { formatCurrency } from '../constants';
 
@@ -1387,6 +1388,20 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
                       </div>
                     </div>
                   </div>
+                </div>
+
+                {/* QR Code and Authorization URL */}
+                <div className="mt-12 pt-8 border-t border-gray-100 flex flex-col items-start gap-4">
+                  <div className="bg-white p-1 border border-gray-200 rounded-lg">
+                    <QRCodeSVG 
+                      value="https://kontaktu.mef.gw:443/invoice_issuance_authorization/00000049202529" 
+                      size={80}
+                      level="H"
+                    />
+                  </div>
+                  <p className="text-[10px] font-mono text-gray-500 break-all">
+                    https://kontaktu.mef.gw:443/invoice_issuance_authorization/00000049202529
+                  </p>
                 </div>
               </div>
             </div>
