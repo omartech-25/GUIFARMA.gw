@@ -840,7 +840,7 @@ const App: React.FC = () => {
 
     switch (currentView) {
       case 'dashboard':
-        return <Dashboard products={products} sales={sales} onNavigate={setCurrentView} />;
+        return <Dashboard products={products} sales={sales} currentUser={currentUser} onNavigate={setCurrentView} />;
       case 'stock':
         return (
           <StockManagement 
@@ -937,6 +937,7 @@ const App: React.FC = () => {
         return (
           <LogManagement 
             logs={activityLogs} 
+            currentUser={currentUser}
             onClearLogs={async (thresholdDate) => {
               try {
                 setIsSyncing(true);

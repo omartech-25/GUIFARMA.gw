@@ -5,12 +5,13 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   LineChart, Line, AreaChart, Area 
 } from 'recharts';
-import { Product, Sale } from '../types';
+import { Product, Sale, User } from '../types';
 import { formatCurrency } from '../constants';
 
 interface DashboardProps {
   products: Product[];
   sales: Sale[];
+  currentUser: User | null;
   onNavigate: (view: any) => void;
 }
 
@@ -24,7 +25,7 @@ const data = [
   { name: 'Jul', vendas: 3490000 },
 ];
 
-const Dashboard: React.FC<DashboardProps> = ({ products = [], sales = [], onNavigate }) => {
+const Dashboard: React.FC<DashboardProps> = ({ products = [], sales = [], currentUser, onNavigate }) => {
   const totalStockItems = products.reduce((acc, p) => {
     const batches = p.batches || [];
     return acc + batches.reduce((sum, b) => sum + (b.quantity || 0), 0);
@@ -47,31 +48,35 @@ const Dashboard: React.FC<DashboardProps> = ({ products = [], sales = [], onNavi
     <div className="space-y-6 animate-fadeIn">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-xl md:text-2xl font-bold text-slate-800">Bem-vindo, Administrador</h2>
+          <h2 className="text-xl md:text-2xl font-bold text-slate-800">Bem-vindo, {currentUser?.name || 'Utilizador'}</h2>
           <p className="text-sm text-slate-500">Aqui está o resumo do MedStock Pro hoje.</p>
         </div>
       </div>
 
       {/* Quick Actions */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <button 
-          onClick={() => onNavigate('sales')}
-          className="p-4 bg-white border border-slate-100 rounded-xl shadow-sm hover:shadow-md transition-all flex flex-col items-center gap-2 group"
-        >
-          <div className="p-3 bg-emerald-50 text-emerald-600 rounded-lg group-hover:bg-emerald-600 group-hover:text-white transition-all">
-            <ShoppingCart size={24} />
-          </div>
-          <span className="text-xs font-bold text-slate-600 uppercase tracking-widest">Nova Venda</span>
-        </button>
-        <button 
-          onClick={() => onNavigate('purchases')}
-          className="p-4 bg-white border border-slate-100 rounded-xl shadow-sm hover:shadow-md transition-all flex flex-col items-center gap-2 group"
-        >
-          <div className="p-3 bg-blue-50 text-blue-600 rounded-lg group-hover:bg-blue-600 group-hover:text-white transition-all">
-            <Plus size={24} />
-          </div>
-          <span className="text-xs font-bold text-slate-600 uppercase tracking-widest">Entrada Estoque</span>
-        </button>
+        {currentUser?.permissions.sales && (
+          <button 
+            onClick={() => onNavigate('sales')}
+            className="p-4 bg-white border border-slate-100 rounded-xl shadow-sm hover:shadow-md transition-all flex flex-col items-center gap-2 group"
+          >
+            <div className="p-3 bg-emerald-50 text-emerald-600 rounded-lg group-hover:bg-emerald-600 group-hover:text-white transition-all">
+              <ShoppingCart size={24} />
+            </div>
+            <span className="text-xs font-bold text-slate-600 uppercase tracking-widest">Nova Venda</span>
+          </button>
+        )}
+        {currentUser?.permissions.stockEntry && (
+          <button 
+            onClick={() => onNavigate('purchases')}
+            className="p-4 bg-white border border-slate-100 rounded-xl shadow-sm hover:shadow-md transition-all flex flex-col items-center gap-2 group"
+          >
+            <div className="p-3 bg-blue-50 text-blue-600 rounded-lg group-hover:bg-blue-600 group-hover:text-white transition-all">
+              <Plus size={24} />
+            </div>
+            <span className="text-xs font-bold text-slate-600 uppercase tracking-widest">Entrada Estoque</span>
+          </button>
+        )}
         <button 
           onClick={() => onNavigate('stock')}
           className="p-4 bg-white border border-slate-100 rounded-xl shadow-sm hover:shadow-md transition-all flex flex-col items-center gap-2 group"
@@ -81,15 +86,17 @@ const Dashboard: React.FC<DashboardProps> = ({ products = [], sales = [], onNavi
           </div>
           <span className="text-xs font-bold text-slate-600 uppercase tracking-widest">Ver Estoque</span>
         </button>
-        <button 
-          onClick={() => onNavigate('logs')}
-          className="p-4 bg-white border border-slate-100 rounded-xl shadow-sm hover:shadow-md transition-all flex flex-col items-center gap-2 group"
-        >
-          <div className="p-3 bg-red-50 text-red-600 rounded-lg group-hover:bg-red-600 group-hover:text-white transition-all">
-            <TrendingUp size={24} className="rotate-180" />
-          </div>
-          <span className="text-xs font-bold text-slate-600 uppercase tracking-widest">Reiniciar Mês</span>
-        </button>
+        {currentUser?.permissions.systemTools && (
+          <button 
+            onClick={() => onNavigate('logs')}
+            className="p-4 bg-white border border-slate-100 rounded-xl shadow-sm hover:shadow-md transition-all flex flex-col items-center gap-2 group"
+          >
+            <div className="p-3 bg-red-50 text-red-600 rounded-lg group-hover:bg-red-600 group-hover:text-white transition-all">
+              <TrendingUp size={24} className="rotate-180" />
+            </div>
+            <span className="text-xs font-bold text-slate-600 uppercase tracking-widest">Reiniciar Mês</span>
+          </button>
+        )}
       </div>
 
       {/* Stats Grid */}

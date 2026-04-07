@@ -67,7 +67,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, UserPermissions> = {
     bankMovements: false,
     accountTransfers: false,
     sales: false,
-    systemTools: true,
+    systemTools: false,
     reportsRegistration: true,
     reportsFinancial: false,
     reportsManagement: false,

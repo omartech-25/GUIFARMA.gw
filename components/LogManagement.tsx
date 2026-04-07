@@ -14,15 +14,16 @@ import {
   CheckCircle2,
   XCircle
 } from 'lucide-react';
-import { ActivityLog, ActivityType, UserRole } from '../types';
+import { ActivityLog, ActivityType, UserRole, User } from '../types';
 
 interface LogManagementProps {
   logs: ActivityLog[];
+  currentUser: User | null;
   onClearLogs: (thresholdDate: string) => Promise<void>;
   isSyncing: boolean;
 }
 
-const LogManagement: React.FC<LogManagementProps> = ({ logs = [], onClearLogs, isSyncing }) => {
+const LogManagement: React.FC<LogManagementProps> = ({ logs = [], currentUser, onClearLogs, isSyncing }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [roleFilter, setRoleFilter] = useState<string>('all');
@@ -91,13 +92,15 @@ const LogManagement: React.FC<LogManagementProps> = ({ logs = [], onClearLogs, i
           <p className="text-slate-500 font-medium">Monitorização de todas as atividades e auditoria.</p>
         </div>
         <div className="flex gap-3">
-          <button 
-            onClick={handleClearMonth}
-            className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-xl hover:bg-slate-50 transition-all text-sm font-bold shadow-sm"
-          >
-            <RefreshCw size={18} className={isSyncing ? 'animate-spin' : ''} />
-            Reiniciar Mês
-          </button>
+          {currentUser?.permissions.systemTools && (
+            <button 
+              onClick={handleClearMonth}
+              className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-xl hover:bg-slate-50 transition-all text-sm font-bold shadow-sm"
+            >
+              <RefreshCw size={18} className={isSyncing ? 'animate-spin' : ''} />
+              Reiniciar Mês
+            </button>
+          )}
           <button className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-xl hover:bg-slate-50 transition-all text-sm font-bold shadow-sm">
             <Download size={18} />
             Exportar CSV
