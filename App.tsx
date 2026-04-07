@@ -770,6 +770,23 @@ const App: React.FC = () => {
       setIsSyncing(false);
     }
   };
+  
+  const handleClearCashHistory = async () => {
+    try {
+      setIsSyncing(true);
+      await dataService.clearCashMovements();
+      await dataService.clearCashSessions();
+      setCashMovements([]);
+      setCashSessions([]);
+      logActivity(ActivityType.DELETE, 'Histórico de caixa limpo', 'Todos os movimentos e sessões foram removidos', 'all', 'Cash');
+      setNotification({ type: 'success', message: 'Histórico de caixa limpo com sucesso.' });
+    } catch (error) {
+      console.error('Erro ao limpar histórico de caixa:', error);
+      setNotification({ type: 'error', message: 'Erro ao limpar histórico de caixa.' });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -913,6 +930,7 @@ const App: React.FC = () => {
             onOpenSession={handleOpenCashSession}
             onCloseSession={handleCloseCashSession}
             onAddMovement={handleAddCashMovement}
+            onClearHistory={handleClearCashHistory}
           />
         );
       case 'logs':

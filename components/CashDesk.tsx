@@ -15,7 +15,7 @@ import {
   TrendingUp,
   AlertCircle
 } from 'lucide-react';
-import { CashSession, CashMovement, PaymentMethod, User } from '../types';
+import { CashSession, CashMovement, PaymentMethod, User, UserRole } from '../types';
 import { formatCurrency } from '../constants';
 
 interface CashDeskProps {
@@ -25,6 +25,7 @@ interface CashDeskProps {
   onOpenSession: (openingBalance: number) => void;
   onCloseSession: (closingBalance: number) => void;
   onAddMovement: (movement: Partial<CashMovement>) => void;
+  onClearHistory: () => void;
 }
 
 const CashDesk: React.FC<CashDeskProps> = ({ 
@@ -33,11 +34,13 @@ const CashDesk: React.FC<CashDeskProps> = ({
   currentUser, 
   onOpenSession, 
   onCloseSession, 
-  onAddMovement 
+  onAddMovement,
+  onClearHistory
 }) => {
   const [isOpeningModalOpen, setIsOpeningModalOpen] = useState(false);
   const [isClosingModalOpen, setIsClosingModalOpen] = useState(false);
   const [isMovementModalOpen, setIsMovementModalOpen] = useState(false);
+  const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false);
   const [openingBalanceInput, setOpeningBalanceInput] = useState('');
   const [closingBalanceInput, setClosingBalanceInput] = useState('');
   const [movementForm, setMovementForm] = useState({
@@ -238,7 +241,17 @@ const CashDesk: React.FC<CashDeskProps> = ({
 
         {/* Histórico de Sessões */}
         <div className="space-y-4">
-          <h3 className="text-lg font-black text-slate-800 uppercase tracking-tighter">Histórico de Fechos</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-black text-slate-800 uppercase tracking-tighter">Histórico de Fechos</h3>
+            {currentUser.role === UserRole.ADMIN && (
+              <button 
+                onClick={() => setIsClearConfirmOpen(true)}
+                className="text-[11px] font-black text-red-600 bg-red-50 px-3 py-1 rounded-lg uppercase tracking-widest hover:bg-red-100 transition-colors"
+              >
+                Limpar Histórico
+              </button>
+            )}
+          </div>
           <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-6 space-y-4">
             {sessions.filter(s => s.status === 'Fechado').slice(0, 5).map(session => (
               <div key={session.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-3">
@@ -437,6 +450,37 @@ const CashDesk: React.FC<CashDeskProps> = ({
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {isClearConfirmOpen && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/90 p-4 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl p-8 space-y-6 animate-slideUp text-center">
+            <div className="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+              <History size={40} />
+            </div>
+            <div>
+              <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Limpar Histórico</h3>
+              <p className="text-slate-500 mt-2 font-medium">Tem certeza que deseja eliminar todo o histórico de movimentos e fechos de caixa? Esta ação é irreversível.</p>
+            </div>
+            <div className="flex flex-col gap-3 pt-4">
+              <button 
+                onClick={() => {
+                  onClearHistory();
+                  setIsClearConfirmOpen(false);
+                }}
+                className="w-full py-4 bg-red-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-red-700 transition-all shadow-xl shadow-red-100"
+              >
+                Sim, Limpar Tudo
+              </button>
+              <button 
+                onClick={() => setIsClearConfirmOpen(false)}
+                className="w-full py-4 bg-slate-100 text-slate-400 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-200 transition-all"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
