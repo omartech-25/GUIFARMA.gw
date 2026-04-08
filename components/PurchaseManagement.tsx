@@ -5,6 +5,7 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Product, Purchase, PurchaseItem, Batch, PharmaceuticalForm, User, UserRole } from '../types';
 import { formatCurrency } from '../constants';
+import { QRCodeSVG } from 'qrcode.react';
 
 interface PurchaseManagementProps {
   products: Product[];
@@ -430,100 +431,136 @@ const PurchaseManagement: React.FC<PurchaseManagementProps> = ({ products, purch
       {/* Invoice View Modal */}
       {isInvoiceViewOpen && viewingPurchase && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/90 p-4 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-none shadow-2xl flex flex-col animate-slideUp">
-            <div ref={invoiceRef} className="p-12 space-y-12 bg-white">
-              <div className="flex justify-between items-start">
-                <div className="flex items-center gap-6">
-                  <div className="w-24 h-24 border-4 border-black rounded-full flex items-center justify-center">
-                    <div className="text-6xl font-bold text-black">+</div>
+          <div className="bg-white w-full max-w-5xl max-h-[95vh] overflow-y-auto rounded-3xl shadow-2xl flex flex-col relative invoice-modal-content">
+            {/* Invoice Content (Matches Sales Invoice) */}
+            <div className="p-12 bg-white text-black font-sans print:p-4">
+              <div ref={invoiceRef} className="max-w-[800px] mx-auto border-2 border-black p-8 invoice-print">
+                {/* Header */}
+                <div className="flex justify-between items-start mb-12">
+                  <div className="flex flex-col items-center">
+                    <div className="w-24 h-24 border-[6px] border-black rounded-full flex items-center justify-center mb-2 relative">
+                      <div className="w-14 h-5 bg-black absolute"></div>
+                      <div className="w-5 h-14 bg-black absolute"></div>
+                    </div>
+                    <h1 className="text-2xl font-black tracking-tight leading-none">GUIFARMA</h1>
+                    <p className="text-[11px] font-bold mt-1">Comércio de Produtos Farmacêuticos</p>
                   </div>
-                  <div>
-                    <h2 className="text-4xl font-black tracking-tighter leading-none text-black">GUIFARMA</h2>
-                    <p className="text-sm font-bold mt-1 text-black">Comércio de Produtos Farmacêuticos</p>
+                  <div className="text-right text-[13px] space-y-1 font-medium">
+                    <p>Rua Eduardo Mondelane Edifício Mavegro</p>
+                    <p>Bissau</p>
+                    <p>Contribuinte: 510019285</p>
+                    <p>Whatsapp: 002455142629</p>
+                    <p>Tel: 955142629 / 965025657</p>
+                    <p>Email: guifarma.distribuicao@gmail.com</p>
                   </div>
                 </div>
-                <div className="text-right text-[13px] space-y-1 font-medium text-black">
-                  <p>Rua Eduardo Mondelane Edifício Mavegro</p>
-                  <p>Bissau</p>
-                  <p>Contribuinte: 510019285</p>
-                  <p>Whatsapp: 002455142629</p>
-                  <p>Tel: 955142629 / 965025657</p>
-                  <p>Email: guifarma.distribuicao@gmail.com</p>
+                
+                <div className="flex justify-center mb-8">
+                  <div className="text-center">
+                    <h2 className="text-xl font-bold uppercase tracking-wider border-b-2 border-black inline-block pb-1">
+                      ENTRADA DE MERCADORIA N°{viewingPurchase.invoiceNumber}
+                    </h2>
+                  </div>
                 </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-12 border-t border-slate-100 pt-8">
-                <div className="space-y-2">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fornecedor:</p>
-                  <p className="text-lg font-bold text-slate-900">{viewingPurchase.supplier}</p>
+                {/* Info Table */}
+                <div className="mb-6">
+                  <table className="w-full border-collapse border border-black">
+                    <tbody>
+                      <tr>
+                        <td className="border border-black p-2 font-bold text-xs w-[15%]">Data:</td>
+                        <td className="border border-black p-2 text-xs w-[35%]">{new Date(viewingPurchase.date).toLocaleDateString('pt')}</td>
+                        <td className="border border-black p-2 font-bold text-xs w-[25%] align-middle" rowSpan={2}>Documento:</td>
+                        <td className="border border-black p-2 font-bold text-xs uppercase w-[25%] align-middle" rowSpan={2}>
+                          FATURA DE COMPRA
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="border border-black p-2 font-bold text-xs">Fornecedor:</td>
+                        <td className="border border-black p-2 text-xs uppercase font-bold">{viewingPurchase.supplier}</td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
-                <div className="space-y-2 text-right">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tipo de Documento:</p>
-                  <p className="text-sm font-bold text-slate-900">Fatura de Compra</p>
-                </div>
-              </div>
 
-              <div className="space-y-4">
-                <table className="w-full text-left border-collapse">
+                {/* Items Table */}
+                <table className="w-full border-collapse border border-black mb-8">
                   <thead>
-                    <tr className="border-b-2 border-slate-900">
-                      <th className="py-3 text-[10px] font-black text-slate-900 uppercase">Descrição</th>
-                      <th className="py-3 text-[10px] font-black text-slate-900 uppercase">Lote</th>
-                      <th className="py-3 text-[10px] font-black text-slate-900 uppercase text-center">Qtd</th>
-                      <th className="py-3 text-[10px] font-black text-slate-900 uppercase text-right">Preço Custo</th>
-                      <th className="py-3 text-[10px] font-black text-slate-900 uppercase text-right">Total</th>
+                    <tr className="bg-gray-50">
+                      <th className="border border-black p-2 text-[10px] font-bold uppercase w-[8%]">QTD</th>
+                      <th className="border border-black p-2 text-[10px] font-bold uppercase text-left w-[40%]">PRODUTO</th>
+                      <th className="border border-black p-2 text-[10px] font-bold uppercase w-[15%]">LOTE</th>
+                      <th className="border border-black p-2 text-[10px] font-bold uppercase w-[12%]">VLD</th>
+                      <th className="border border-black p-2 text-[10px] font-bold uppercase text-right w-[12%]">PREÇO</th>
+                      <th className="border border-black p-2 text-[10px] font-bold uppercase text-right w-[13%]">TOTAL</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody>
                     {viewingPurchase.items.map((item, idx) => (
                       <tr key={idx}>
-                        <td className="py-4">
-                          <p className="font-bold text-slate-800">{item.productName}</p>
+                        <td className="border border-black p-2 text-center text-[11px] font-bold">{item.quantity}</td>
+                        <td className="border border-black p-2 text-[11px] font-bold uppercase">{item.productName}</td>
+                        <td className="border border-black p-2 text-center text-[10px] font-mono">{item.batchNumber}</td>
+                        <td className="border border-black p-2 text-center text-[10px] font-bold">{new Date(item.expiryDate).toLocaleDateString('pt', { month: '2-digit', year: 'numeric' })}</td>
+                        <td className="border border-black p-2 text-right text-[11px] font-bold whitespace-nowrap">
+                          {formatCurrency(item.purchasePrice).replace('FCFA', '').trim()} FCFA
                         </td>
-                        <td className="py-4 font-mono text-xs">{item.batchNumber}</td>
-                        <td className="py-4 text-center font-medium">{item.quantity}</td>
-                        <td className="py-4 text-right font-medium">{formatCurrency(item.purchasePrice)}</td>
-                        <td className="py-4 text-right font-bold text-slate-900">{formatCurrency(item.total)}</td>
+                        <td className="border border-black p-2 text-right text-[11px] font-bold whitespace-nowrap">
+                          {formatCurrency(item.total).replace('FCFA', '').trim()} FCFA
+                        </td>
                       </tr>
                     ))}
+                    <tr>
+                      <td className="border border-black p-2 font-bold text-sm text-center bg-gray-50" colSpan={5}>TOTAL COMPRA</td>
+                      <td className="border border-black p-2 font-bold text-sm text-right bg-gray-50 whitespace-nowrap">
+                        {formatCurrency(viewingPurchase.total).replace('FCFA', '').trim()} FCFA
+                      </td>
+                    </tr>
                   </tbody>
                 </table>
-              </div>
 
-              <div className="flex justify-end pt-8">
-                <div className="w-64 space-y-3">
-                  <div className="flex justify-between items-center pt-3 border-t-2 border-slate-900">
-                    <span className="font-black text-slate-900">TOTAL COMPRA:</span>
-                    <span className="text-xl font-black text-blue-600">{formatCurrency(viewingPurchase.total)}</span>
-                  </div>
-                  {(viewingPurchase.createdBy || viewingPurchase.updatedBy) && (
-                    <div className="flex flex-col items-end gap-1 text-[8px] font-bold text-slate-300 uppercase tracking-widest pt-4">
-                      {viewingPurchase.createdBy && (
-                        <span>Registado por: {viewingPurchase.createdBy} em {new Date(viewingPurchase.createdAt!).toLocaleString('pt')}</span>
-                      )}
-                      {viewingPurchase.updatedBy && viewingPurchase.updatedAt !== viewingPurchase.createdAt && (
-                        <span>Alterado por: {viewingPurchase.updatedBy} em {new Date(viewingPurchase.updatedAt!).toLocaleString('pt')}</span>
-                      )}
+                {/* Footer Signature */}
+                <div className="flex justify-end pt-24">
+                  <div className="text-center w-1/2">
+                    <div className="relative inline-block">
+                      <div className="border-t-2 border-black px-12 pt-2">
+                        <p className="text-xs font-bold uppercase tracking-widest">Carimbo e Assinatura</p>
+                      </div>
                     </div>
-                  )}
+                  </div>
+                </div>
+
+                {/* QR Code and Authorization URL */}
+                <div className="mt-12 pt-8 border-t border-gray-100 flex flex-col items-start gap-4">
+                  <div className="bg-white p-1 border border-gray-200 rounded-lg">
+                    <QRCodeSVG 
+                      value={`https://guifarma.app/purchase/${viewingPurchase.invoiceNumber}`} 
+                      size={80}
+                      level="H"
+                    />
+                  </div>
+                  <p className="text-[10px] font-mono text-gray-500 break-all">
+                    https://guifarma.app/purchase/{viewingPurchase.invoiceNumber}
+                  </p>
                 </div>
               </div>
             </div>
 
-            <div className="sticky bottom-0 bg-slate-50 border-t border-slate-200 p-6 flex justify-between items-center px-12">
+            {/* Action Bar (Hidden on Print) */}
+            <div className="sticky bottom-0 bg-white/80 backdrop-blur-xl border-t border-slate-100 p-8 flex justify-between items-center px-16 print:hidden">
               <div className="flex gap-4">
                 <button 
                   onClick={() => window.print()}
-                  className="flex items-center gap-2 bg-slate-100 text-slate-700 px-6 py-3 rounded-xl font-bold hover:bg-slate-200 transition-all"
+                  className="flex items-center gap-3 bg-slate-900 text-white px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-800 transition-all shadow-2xl shadow-slate-900/20 group"
                 >
-                  <Printer size={18} />
-                  Imprimir
+                  <Printer size={20} className="group-hover:scale-110 transition-transform" />
+                  Imprimir Fatura
                 </button>
                 <button 
                   onClick={handleDownloadPDF}
-                  className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg"
+                  className="flex items-center gap-3 bg-slate-100 text-slate-900 px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-200 transition-all"
                 >
-                  <Download size={18} />
+                  <Download size={20} />
                   PDF
                 </button>
               </div>
@@ -532,7 +569,7 @@ const PurchaseManagement: React.FC<PurchaseManagementProps> = ({ products, purch
                   setIsInvoiceViewOpen(false);
                   setViewingPurchase(null);
                 }} 
-                className="bg-slate-900 text-white px-8 py-3 rounded-xl font-bold hover:bg-slate-800 transition-all shadow-lg"
+                className="bg-slate-100 text-slate-500 px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:text-slate-900 hover:bg-slate-200 transition-all"
               >
                 Fechar
               </button>
