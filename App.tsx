@@ -770,6 +770,21 @@ const App: React.FC = () => {
       setIsSyncing(false);
     }
   };
+
+  const handleClearPurchases = async () => {
+    try {
+      setIsSyncing(true);
+      await dataService.clearPurchases();
+      setPurchases([]);
+      logActivity(ActivityType.DELETE, 'Histórico de compras limpo', 'Todas as faturas de compra foram removidas', 'all', 'Purchase');
+      setNotification({ type: 'success', message: 'Histórico de compras limpo com sucesso.' });
+    } catch (error) {
+      console.error('Erro ao limpar histórico de compras:', error);
+      setNotification({ type: 'error', message: 'Erro ao limpar histórico de compras.' });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
   
   const handleClearCashHistory = async () => {
     try {
@@ -860,9 +875,11 @@ const App: React.FC = () => {
           <PurchaseManagement 
             products={products}
             purchases={purchases}
+            currentUser={currentUser}
             onAddPurchase={handleAddPurchase}
             onUpdatePurchase={handleUpdatePurchase}
             onDeletePurchase={handleDeletePurchase}
+            onClearHistory={handleClearPurchases}
             onUpdateProduct={handleUpdateProduct}
           />
         );

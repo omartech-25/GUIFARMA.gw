@@ -3,19 +3,21 @@ import React, { useState, useRef } from 'react';
 import { Search, Plus, ShoppingCart, Trash2, CheckCircle2, ReceiptText, X, Package, Calendar, Download, Printer, Edit } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
-import { Product, Purchase, PurchaseItem, Batch, PharmaceuticalForm } from '../types';
+import { Product, Purchase, PurchaseItem, Batch, PharmaceuticalForm, User, UserRole } from '../types';
 import { formatCurrency } from '../constants';
 
 interface PurchaseManagementProps {
   products: Product[];
   purchases: Purchase[];
+  currentUser: User | null;
   onAddPurchase: (purchase: Purchase) => void;
   onUpdatePurchase: (purchase: Purchase) => void;
   onDeletePurchase: (purchaseId: string) => void;
+  onClearHistory: () => void;
   onUpdateProduct: (product: Product) => void;
 }
 
-const PurchaseManagement: React.FC<PurchaseManagementProps> = ({ products, purchases, onAddPurchase, onUpdatePurchase, onDeletePurchase, onUpdateProduct }) => {
+const PurchaseManagement: React.FC<PurchaseManagementProps> = ({ products, purchases, currentUser, onAddPurchase, onUpdatePurchase, onDeletePurchase, onClearHistory, onUpdateProduct }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [cart, setCart] = useState<PurchaseItem[]>([]);
@@ -28,6 +30,7 @@ const PurchaseManagement: React.FC<PurchaseManagementProps> = ({ products, purch
   const [editingPurchase, setEditingPurchase] = useState<Purchase | null>(null);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [purchaseToDelete, setPurchaseToDelete] = useState<Purchase | null>(null);
+  const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false);
   const invoiceRef = useRef<HTMLDivElement>(null);
 
   const cartTotal = Math.round(cart.reduce((sum, item) => sum + item.total, 0));
@@ -145,13 +148,24 @@ const PurchaseManagement: React.FC<PurchaseManagementProps> = ({ products, purch
           <h2 className="text-2xl font-bold text-slate-800">Entrada de Mercadoria</h2>
           <p className="text-slate-500">Registe faturas de compra e entrada de novos lotes.</p>
         </div>
-        <button 
-          onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-xl shadow-lg hover:bg-blue-700 transition-all font-bold"
-        >
-          <Plus size={20} />
-          Nova Fatura de Compra
-        </button>
+        <div className="flex gap-4">
+          {currentUser?.role === UserRole.ADMIN && (
+            <button 
+              onClick={() => setIsClearConfirmOpen(true)}
+              className="flex items-center gap-2 bg-red-50 text-red-600 px-6 py-3 rounded-xl border border-red-100 hover:bg-red-100 transition-all font-bold text-sm"
+            >
+              <Trash2 size={20} />
+              Limpar Histórico
+            </button>
+          )}
+          <button 
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-xl shadow-lg hover:bg-blue-700 transition-all font-bold"
+          >
+            <Plus size={20} />
+            Nova Fatura de Compra
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
@@ -180,15 +194,38 @@ const PurchaseManagement: React.FC<PurchaseManagementProps> = ({ products, purch
                 <td className="px-6 py-4 font-bold text-blue-600">{formatCurrency(purchase.total)}</td>
                 <td className="px-6 py-4 text-sm text-slate-500">{purchase.items.length} produtos</td>
                 <td className="px-6 py-4 text-right">
-                  <button 
-                    onClick={() => {
-                      setViewingPurchase(purchase);
-                      setIsInvoiceViewOpen(true);
-                    }}
-                    className="text-slate-400 hover:text-blue-600 transition-colors"
-                  >
-                    <ReceiptText size={18} />
-                  </button>
+                  <div className="flex justify-end gap-2">
+                    <button 
+                      onClick={() => {
+                        setViewingPurchase(purchase);
+                        setIsInvoiceViewOpen(true);
+                      }}
+                      className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                      title="Visualizar Fatura"
+                    >
+                      <ReceiptText size={18} />
+                    </button>
+                    <button 
+                      onClick={() => {
+                        setEditingPurchase(purchase);
+                        setIsEditModalOpen(true);
+                      }}
+                      className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"
+                      title="Editar Fatura"
+                    >
+                      <Edit size={18} />
+                    </button>
+                    <button 
+                      onClick={() => {
+                        setPurchaseToDelete(purchase);
+                        setIsDeleteConfirmOpen(true);
+                      }}
+                      className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                      title="Eliminar Fatura"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -588,6 +625,38 @@ const PurchaseManagement: React.FC<PurchaseManagementProps> = ({ products, purch
               </button>
               <button 
                 onClick={() => setIsDeleteConfirmOpen(false)}
+                className="w-full py-4 bg-slate-100 text-slate-400 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-200 transition-all"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Clear History Confirmation Modal */}
+      {isClearConfirmOpen && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-900/80 backdrop-blur-md p-4">
+          <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md p-10 text-center space-y-6">
+            <div className="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Trash2 size={40} />
+            </div>
+            <div>
+              <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Limpar Histórico</h3>
+              <p className="text-slate-500 mt-2">Tem certeza que deseja eliminar <strong>todas</strong> as faturas de entrada de mercadoria? Esta ação é irreversível.</p>
+            </div>
+            <div className="flex flex-col gap-3 pt-4">
+              <button 
+                onClick={() => {
+                  onClearHistory();
+                  setIsClearConfirmOpen(false);
+                }}
+                className="w-full py-4 bg-red-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-red-700 transition-all shadow-xl shadow-red-200"
+              >
+                Sim, Limpar Tudo
+              </button>
+              <button 
+                onClick={() => setIsClearConfirmOpen(false)}
                 className="w-full py-4 bg-slate-100 text-slate-400 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-200 transition-all"
               >
                 Cancelar

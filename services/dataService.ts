@@ -140,6 +140,11 @@ export const dataService = {
     const { error } = await supabase.from('cash_movements').upsert(movement);
     if (error) throw error;
   },
+  async clearPurchases() {
+    const { error } = await supabase.from('purchases').delete().neq('id', '0');
+    if (error) throw error;
+  },
+
   async clearCashMovements() {
     const { error } = await supabase.from('cash_movements').delete().neq('id', '0');
     if (error) throw error;
