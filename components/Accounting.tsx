@@ -27,7 +27,10 @@ import {
   AlertTriangle,
   Undo2,
   Target,
-  X
+  X,
+  Printer,
+  Edit,
+  Trash2
 } from 'lucide-react';
 import { formatCurrency } from '../constants';
 import { Sale, Purchase, Product, JournalEntry } from '../types';
@@ -38,11 +41,26 @@ interface AccountingProps {
   products: Product[];
   journalEntries: JournalEntry[];
   onAddJournalEntry: (entry: JournalEntry) => void;
+  onUpdateJournalEntry: (entry: JournalEntry) => void;
+  onDeleteJournalEntry: (id: string) => void;
 }
 
-const Accounting: React.FC<AccountingProps> = ({ sales = [], purchases = [], products = [], journalEntries = [], onAddJournalEntry }) => {
+const Accounting: React.FC<AccountingProps> = ({ 
+  sales = [], 
+  purchases = [], 
+  products = [], 
+  journalEntries = [], 
+  onAddJournalEntry,
+  onUpdateJournalEntry,
+  onDeleteJournalEntry
+}) => {
   const [activeTab, setActiveTab] = useState<'journal' | 'chart' | 'tax' | 'balance' | 'cost_center' | 'regulatory' | 'expenses'>('journal');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [entryToDelete, setEntryToDelete] = useState<JournalEntry | null>(null);
+  const [journalFilter, setJournalFilter] = useState<string>('Todos os Diários');
+  
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     reference: '',
@@ -53,31 +71,142 @@ const Accounting: React.FC<AccountingProps> = ({ sales = [], purchases = [], pro
     credit: ''
   });
 
+  const handleOpenModal = (entry?: JournalEntry) => {
+    if (entry) {
+      setEditingEntry(entry);
+      setFormData({
+        date: entry.date.split('T')[0],
+        reference: entry.reference,
+        accountCode: entry.accountCode,
+        accountName: entry.accountName,
+        description: entry.description,
+        debit: entry.debit.toString(),
+        credit: entry.credit.toString()
+      });
+    } else {
+      setEditingEntry(null);
+      setFormData({
+        date: new Date().toISOString().split('T')[0],
+        reference: '',
+        accountCode: '',
+        accountName: '',
+        description: '',
+        debit: '',
+        credit: ''
+      });
+    }
+    setIsModalOpen(true);
+  };
+
   const handleManualEntrySubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const newEntry: JournalEntry = {
-      id: `manual-${Date.now()}`,
-      date: formData.date,
-      reference: formData.reference,
-      accountCode: formData.accountCode,
-      accountName: formData.accountName,
-      description: formData.description,
-      debit: parseFloat(formData.debit) || 0,
-      credit: parseFloat(formData.credit) || 0,
-      type: 'Manual',
-      createdAt: new Date().toISOString()
-    };
-    onAddJournalEntry(newEntry);
+    if (editingEntry) {
+      const updatedEntry: JournalEntry = {
+        ...editingEntry,
+        date: formData.date,
+        reference: formData.reference,
+        accountCode: formData.accountCode,
+        accountName: formData.accountName,
+        description: formData.description,
+        debit: parseFloat(formData.debit) || 0,
+        credit: parseFloat(formData.credit) || 0,
+        updatedAt: new Date().toISOString()
+      };
+      onUpdateJournalEntry(updatedEntry);
+    } else {
+      const newEntry: JournalEntry = {
+        id: `manual-${Date.now()}`,
+        date: formData.date,
+        reference: formData.reference,
+        accountCode: formData.accountCode,
+        accountName: formData.accountName,
+        description: formData.description,
+        debit: parseFloat(formData.debit) || 0,
+        credit: parseFloat(formData.credit) || 0,
+        type: 'Manual',
+        createdAt: new Date().toISOString()
+      };
+      onAddJournalEntry(newEntry);
+    }
     setIsModalOpen(false);
-    setFormData({
-      date: new Date().toISOString().split('T')[0],
-      reference: '',
-      accountCode: '',
-      accountName: '',
-      description: '',
-      debit: '',
-      credit: ''
-    });
+    setEditingEntry(null);
+  };
+
+  const handlePrintEntry = (entry: JournalEntry) => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const html = `
+      <html>
+        <head>
+          <title>Lançamento Contabilístico - ${entry.reference}</title>
+          <style>
+            body { font-family: sans-serif; padding: 40px; color: #334155; }
+            .header { display: flex; justify-between; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 30px; }
+            .title { font-size: 24px; font-weight: bold; color: #0f172a; }
+            .info { margin-bottom: 30px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+            .info-item { margin-bottom: 10px; }
+            .label { font-size: 12px; font-weight: bold; color: #94a3b8; text-transform: uppercase; }
+            .value { font-size: 16px; font-weight: bold; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th { background: #f8fafc; text-align: left; padding: 12px; border-bottom: 2px solid #e2e8f0; font-size: 12px; text-transform: uppercase; }
+            td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
+            .text-right { text-align: right; }
+            .footer { margin-top: 50px; border-top: 1px solid #e2e8f0; pt: 20px; font-size: 12px; color: #94a3b8; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div>
+              <div class="title">GUIFARMA SA</div>
+              <div style="font-size: 12px; font-weight: bold;">Lançamento Contabilístico</div>
+            </div>
+            <div style="text-align: right">
+              <div class="value">${entry.reference}</div>
+              <div class="label">Referência</div>
+            </div>
+          </div>
+          
+          <div class="info">
+            <div class="info-item">
+              <div class="label">Data do Lançamento</div>
+              <div class="value">${new Date(entry.date).toLocaleDateString('pt')}</div>
+            </div>
+            <div class="info-item">
+              <div class="label">Tipo</div>
+              <div class="value">${entry.type}</div>
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Conta OHADA</th>
+                <th>Descrição</th>
+                <th class="text-right">Débito</th>
+                <th class="text-right">Crédito</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>${entry.accountCode}</strong> - ${entry.accountName}</td>
+                <td>${entry.description}</td>
+                <td class="text-right font-bold">${entry.debit > 0 ? formatCurrency(entry.debit) : '-'}</td>
+                <td class="text-right font-bold">${entry.credit > 0 ? formatCurrency(entry.credit) : '-'}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="footer">
+            Documento gerado em ${new Date().toLocaleString('pt')} por GUIFARMA Sistema de Gestão.
+          </div>
+          <script>window.print();</script>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(html);
+    printWindow.document.close();
   };
 
   // Calculate totals
@@ -96,6 +225,11 @@ const Accounting: React.FC<AccountingProps> = ({ sales = [], purchases = [], pro
   }, 0);
 
   const netIVA = totalIVA_Collected - totalIVA_Paid;
+
+  const filteredJournalEntries = useMemo(() => {
+    if (journalFilter === 'Todos os Diários') return journalEntries;
+    return journalEntries.filter(entry => entry.type === journalFilter);
+  }, [journalEntries, journalFilter]);
 
   const expensesBySupplier = useMemo(() => {
     const supplierMap: Record<string, number> = {};
@@ -121,7 +255,7 @@ const Accounting: React.FC<AccountingProps> = ({ sales = [], purchases = [], pro
             Exportar FEC
           </button>
           <button 
-            onClick={() => setIsModalOpen(true)}
+            onClick={() => handleOpenModal()}
             className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-xl hover:bg-slate-800 transition-all text-sm font-bold shadow-lg"
           >
             <Plus size={18} />
@@ -208,11 +342,16 @@ const Accounting: React.FC<AccountingProps> = ({ sales = [], purchases = [], pro
               <div className="flex gap-2">
                 <div className="relative">
                   <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
-                  <select className="pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-slate-900">
-                    <option>Todos os Diários</option>
-                    <option>Vendas</option>
-                    <option>Compras</option>
-                    <option>Caixa</option>
+                  <select 
+                    className="pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-slate-900"
+                    value={journalFilter}
+                    onChange={(e) => setJournalFilter(e.target.value)}
+                  >
+                    <option value="Todos os Diários">Todos os Diários</option>
+                    <option value="Venda">Vendas</option>
+                    <option value="Compra">Compras</option>
+                    <option value="Caixa">Caixa</option>
+                    <option value="Manual">Manual</option>
                   </select>
                 </div>
               </div>
@@ -227,11 +366,12 @@ const Accounting: React.FC<AccountingProps> = ({ sales = [], purchases = [], pro
                     <th className="px-8 py-4">Descrição</th>
                     <th className="px-8 py-4 text-right">Débito</th>
                     <th className="px-8 py-4 text-right">Crédito</th>
+                    <th className="px-8 py-4 text-right">Ações</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
                   {/* Journal Entries (Manual + Automatic) */}
-                  {journalEntries.map((entry) => (
+                  {filteredJournalEntries.map((entry) => (
                     <tr key={entry.id} className="hover:bg-slate-50/50 transition-colors">
                       <td className="px-8 py-4 text-slate-500">{new Date(entry.date).toLocaleDateString('pt')}</td>
                       <td className="px-8 py-4 font-mono text-[10px] font-bold">{entry.reference}</td>
@@ -239,6 +379,34 @@ const Accounting: React.FC<AccountingProps> = ({ sales = [], purchases = [], pro
                       <td className="px-8 py-4 text-slate-500">{entry.description}</td>
                       <td className="px-8 py-4 text-right font-bold text-emerald-600">{entry.debit > 0 ? formatCurrency(entry.debit) : '-'}</td>
                       <td className="px-8 py-4 text-right font-bold text-red-600">{entry.credit > 0 ? formatCurrency(entry.credit) : '-'}</td>
+                      <td className="px-8 py-4 text-right">
+                        <div className="flex justify-end gap-2">
+                          <button 
+                            onClick={() => handlePrintEntry(entry)}
+                            className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                            title="Imprimir Lançamento"
+                          >
+                            <Printer size={16} />
+                          </button>
+                          <button 
+                            onClick={() => handleOpenModal(entry)}
+                            className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"
+                            title="Editar Lançamento"
+                          >
+                            <Edit size={16} />
+                          </button>
+                          <button 
+                            onClick={() => {
+                              setEntryToDelete(entry);
+                              setIsDeleteConfirmOpen(true);
+                            }}
+                            className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                            title="Eliminar Lançamento"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -582,9 +750,17 @@ const Accounting: React.FC<AccountingProps> = ({ sales = [], purchases = [], pro
                 <div className="bg-emerald-500 p-2 rounded-xl">
                   <BookOpen size={20} />
                 </div>
-                <h3 className="text-lg font-bold">Novo Lançamento Manual</h3>
+                <h3 className="text-lg font-bold">
+                  {editingEntry ? 'Editar Lançamento' : 'Novo Lançamento Manual'}
+                </h3>
               </div>
-              <button onClick={() => setIsModalOpen(false)} className="hover:bg-slate-800 p-2 rounded-full text-slate-400 hover:text-white">
+              <button 
+                onClick={() => {
+                  setIsModalOpen(false);
+                  setEditingEntry(null);
+                }} 
+                className="hover:bg-slate-800 p-2 rounded-full text-slate-400 hover:text-white"
+              >
                 <X size={20} />
               </button>
             </div>
@@ -592,104 +768,136 @@ const Accounting: React.FC<AccountingProps> = ({ sales = [], purchases = [], pro
             <form onSubmit={handleManualEntrySubmit} className="p-8 space-y-5">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Data</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Data</label>
                   <input 
-                    required 
                     type="date" 
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none" 
+                    required
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 outline-none font-bold text-sm"
                     value={formData.date}
-                    onChange={e => setFormData({...formData, date: e.target.value})}
+                    onChange={e => setFormData({ ...formData, date: e.target.value })}
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Referência / Doc</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Referência</label>
                   <input 
-                    required 
                     type="text" 
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none" 
-                    placeholder="Ex: REC-001"
+                    required
+                    placeholder="Ex: DOC-2024-001"
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 outline-none font-bold text-sm"
                     value={formData.reference}
-                    onChange={e => setFormData({...formData, reference: e.target.value})}
+                    onChange={e => setFormData({ ...formData, reference: e.target.value })}
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Conta (Código)</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Código Conta</label>
                   <input 
-                    required 
                     type="text" 
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none font-mono" 
+                    required
                     placeholder="Ex: 521"
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 outline-none font-bold text-sm"
                     value={formData.accountCode}
-                    onChange={e => setFormData({...formData, accountCode: e.target.value})}
+                    onChange={e => setFormData({ ...formData, accountCode: e.target.value })}
                   />
                 </div>
-                <div className="col-span-2 space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nome da Conta</label>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Nome Conta</label>
                   <input 
-                    required 
                     type="text" 
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none" 
-                    placeholder="Ex: Banco BAO"
+                    required
+                    placeholder="Ex: Bancos"
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 outline-none font-bold text-sm"
                     value={formData.accountName}
-                    onChange={e => setFormData({...formData, accountName: e.target.value})}
+                    onChange={e => setFormData({ ...formData, accountName: e.target.value })}
                   />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Descrição do Lançamento</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Descrição</label>
                 <input 
-                  required 
                   type="text" 
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none" 
-                  placeholder="Ex: Pagamento de renda mensal"
+                  required
+                  placeholder="Descreva a operação..."
+                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 outline-none font-bold text-sm"
                   value={formData.description}
-                  onChange={e => setFormData({...formData, description: e.target.value})}
+                  onChange={e => setFormData({ ...formData, description: e.target.value })}
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Débito (FCFA)</label>
+                  <label className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">Débito</label>
                   <input 
                     type="number" 
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none font-bold text-emerald-600" 
-                    placeholder="0"
+                    step="0.01"
+                    placeholder="0.00"
+                    className="w-full p-3 bg-emerald-50 border border-emerald-100 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none font-bold text-emerald-700 text-sm"
                     value={formData.debit}
-                    onChange={e => setFormData({...formData, debit: e.target.value})}
+                    onChange={e => setFormData({ ...formData, debit: e.target.value })}
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Crédito (FCFA)</label>
+                  <label className="text-[10px] font-bold text-red-600 uppercase tracking-wider">Crédito</label>
                   <input 
                     type="number" 
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-red-500 outline-none font-bold text-red-600" 
-                    placeholder="0"
+                    step="0.01"
+                    placeholder="0.00"
+                    className="w-full p-3 bg-red-50 border border-red-100 rounded-xl focus:ring-2 focus:ring-red-500 outline-none font-bold text-red-700 text-sm"
                     value={formData.credit}
-                    onChange={e => setFormData({...formData, credit: e.target.value})}
+                    onChange={e => setFormData({ ...formData, credit: e.target.value })}
                   />
                 </div>
               </div>
 
-              <div className="pt-6 flex gap-3">
-                <button 
-                  type="button" 
-                  onClick={() => setIsModalOpen(false)} 
-                  className="flex-1 py-4 font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-2xl transition-all"
-                >
-                  Cancelar
-                </button>
-                <button 
-                  type="submit" 
-                  className="flex-1 py-4 font-bold text-white bg-slate-900 hover:bg-slate-800 rounded-2xl transition-all shadow-xl shadow-slate-200"
-                >
-                  Confirmar Lançamento
-                </button>
-              </div>
+              <button 
+                type="submit"
+                className="w-full py-4 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition-all shadow-lg mt-4"
+              >
+                {editingEntry ? 'Salvar Alterações' : 'Confirmar Lançamento'}
+              </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {isDeleteConfirmOpen && entryToDelete && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-900/90 p-4 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl p-10 text-center space-y-6 animate-slideUp">
+            <div className="w-20 h-20 bg-red-100 text-red-600 rounded-3xl flex items-center justify-center mx-auto shadow-xl shadow-red-100/50">
+              <Trash2 size={40} />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Eliminar Lançamento</h2>
+              <p className="text-slate-500 font-medium leading-relaxed">
+                Tem certeza que deseja eliminar o lançamento <span className="font-bold text-slate-900">{entryToDelete.reference}</span>? 
+                Esta ação é irreversível e pode afetar os balanços contabilísticos.
+              </p>
+            </div>
+            <div className="flex flex-col gap-3">
+              <button 
+                onClick={() => {
+                  onDeleteJournalEntry(entryToDelete.id);
+                  setIsDeleteConfirmOpen(false);
+                  setEntryToDelete(null);
+                }}
+                className="w-full py-4 bg-red-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-red-700 transition-all shadow-xl shadow-red-200"
+              >
+                Sim, Eliminar Definitivamente
+              </button>
+              <button 
+                onClick={() => {
+                  setIsDeleteConfirmOpen(false);
+                  setEntryToDelete(null);
+                }}
+                className="w-full py-4 bg-slate-100 text-slate-400 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-200 transition-all"
+              >
+                Cancelar
+              </button>
+            </div>
           </div>
         </div>
       )}

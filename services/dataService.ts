@@ -106,6 +106,10 @@ export const dataService = {
     const { error } = await supabase.from('journal_entries').upsert(entry);
     if (error) throw error;
   },
+  async deleteJournalEntry(id: string) {
+    const { error } = await supabase.from('journal_entries').delete().eq('id', id);
+    if (error) throw error;
+  },
 
   // Credit Notes
   async getCreditNotes(): Promise<CreditNote[]> {

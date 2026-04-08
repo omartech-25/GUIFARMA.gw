@@ -684,6 +684,21 @@ const App: React.FC = () => {
     setCurrentView('sales');
   };
 
+  const handleAddJournalEntry = (entry: JournalEntry) => {
+    setJournalEntries(prev => [entry, ...prev]);
+    dataService.saveJournalEntry(entry).catch(console.error);
+  };
+
+  const handleUpdateJournalEntry = (entry: JournalEntry) => {
+    setJournalEntries(prev => prev.map(e => e.id === entry.id ? entry : e));
+    dataService.saveJournalEntry(entry).catch(console.error);
+  };
+
+  const handleDeleteJournalEntry = (id: string) => {
+    setJournalEntries(prev => prev.filter(e => e.id !== id));
+    dataService.deleteJournalEntry(id).catch(console.error);
+  };
+
   const handleOpenCashSession = (openingBalance: number) => {
     const newSession: CashSession = {
       id: `cs-${Date.now()}`,
@@ -932,10 +947,9 @@ const App: React.FC = () => {
             purchases={purchases}
             products={products}
             journalEntries={journalEntries}
-            onAddJournalEntry={(entry) => {
-              setJournalEntries(prev => [entry, ...prev]);
-              dataService.saveJournalEntry(entry).catch(console.error);
-            }}
+            onAddJournalEntry={handleAddJournalEntry}
+            onUpdateJournalEntry={handleUpdateJournalEntry}
+            onDeleteJournalEntry={handleDeleteJournalEntry}
           />
         );
       case 'cash':
