@@ -17,7 +17,6 @@ export const dataService = {
       password: user.password,
       role: user.role,
       status: user.status,
-      employee_name: user.employeeName,
       permissions: user.permissions
     };
     
