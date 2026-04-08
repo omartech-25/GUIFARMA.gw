@@ -95,7 +95,12 @@ const App: React.FC = () => {
           { id: 'u4', name: 'UMARO GANHA BALDE', email: 'az965125324@gmail.com', password: 'admin', role: UserRole.ADMIN, employeeName: 'UMARO GANHA BALDE', status: 'Ativo', permissions: ROLE_PERMISSIONS[UserRole.ADMIN] }
         ];
 
-        const mergedUsers = [...dbUsers];
+        const mergedUsers = dbUsers.map(u => ({
+          ...u,
+          permissions: u.permissions || ROLE_PERMISSIONS[u.role] || DEFAULT_PERMISSIONS,
+          status: u.status || 'Ativo'
+        }));
+        
         defaultUsers.forEach(defUser => {
           if (!mergedUsers.find(u => u.email.toLowerCase() === defUser.email.toLowerCase())) {
             mergedUsers.push(defUser);
@@ -848,7 +853,8 @@ const App: React.FC = () => {
     const requiredPerm = viewPermissions[currentView];
     if (requiredPerm) {
       const perms = Array.isArray(requiredPerm) ? requiredPerm : [requiredPerm];
-      const hasPermission = perms.some(p => currentUser.permissions[p]);
+      const userPermissions = currentUser.permissions || ROLE_PERMISSIONS[currentUser.role] || DEFAULT_PERMISSIONS;
+      const hasPermission = perms.some(p => userPermissions[p as keyof typeof userPermissions]);
       if (!hasPermission) {
         return (
           <div className="flex flex-col items-center justify-center h-[60vh] text-slate-400 space-y-4">

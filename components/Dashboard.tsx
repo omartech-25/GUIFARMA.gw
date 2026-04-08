@@ -55,7 +55,7 @@ const Dashboard: React.FC<DashboardProps> = ({ products = [], sales = [], curren
 
       {/* Quick Actions */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {currentUser?.permissions.sales && (
+        {currentUser?.permissions?.sales && (
           <button 
             onClick={() => onNavigate('sales')}
             className="p-4 bg-white border border-slate-100 rounded-xl shadow-sm hover:shadow-md transition-all flex flex-col items-center gap-2 group"
@@ -66,7 +66,7 @@ const Dashboard: React.FC<DashboardProps> = ({ products = [], sales = [], curren
             <span className="text-xs font-bold text-slate-600 uppercase tracking-widest">Nova Venda</span>
           </button>
         )}
-        {currentUser?.permissions.stockEntry && (
+        {currentUser?.permissions?.stockEntry && (
           <button 
             onClick={() => onNavigate('purchases')}
             className="p-4 bg-white border border-slate-100 rounded-xl shadow-sm hover:shadow-md transition-all flex flex-col items-center gap-2 group"
@@ -86,7 +86,7 @@ const Dashboard: React.FC<DashboardProps> = ({ products = [], sales = [], curren
           </div>
           <span className="text-xs font-bold text-slate-600 uppercase tracking-widest">Ver Estoque</span>
         </button>
-        {currentUser?.permissions.systemTools && (
+        {currentUser?.permissions?.systemTools && (
           <button 
             onClick={() => onNavigate('logs')}
             className="p-4 bg-white border border-slate-100 rounded-xl shadow-sm hover:shadow-md transition-all flex flex-col items-center gap-2 group"

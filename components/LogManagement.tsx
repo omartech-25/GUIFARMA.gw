@@ -92,7 +92,7 @@ const LogManagement: React.FC<LogManagementProps> = ({ logs = [], currentUser, o
           <p className="text-slate-500 font-medium">Monitorização de todas as atividades e auditoria.</p>
         </div>
         <div className="flex gap-3">
-          {currentUser?.permissions.systemTools && (
+          {currentUser?.permissions?.systemTools && (
             <button 
               onClick={handleClearMonth}
               className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-xl hover:bg-slate-50 transition-all text-sm font-bold shadow-sm"

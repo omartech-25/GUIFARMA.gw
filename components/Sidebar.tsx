@@ -17,6 +17,7 @@ import {
   X
 } from 'lucide-react';
 import { ViewType, UserRole, User } from '../types';
+import { ROLE_PERMISSIONS, DEFAULT_PERMISSIONS } from '../constants';
 
 interface SidebarProps {
   currentView: ViewType;
@@ -74,7 +75,8 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setView, user, onLogout,
           {menuItems.map((item) => {
             if (item.permission) {
               const permissions = Array.isArray(item.permission) ? item.permission : [item.permission];
-              const hasPermission = permissions.some(p => user.permissions[p as keyof typeof user.permissions]);
+              const userPermissions = user.permissions || ROLE_PERMISSIONS[user.role] || DEFAULT_PERMISSIONS;
+              const hasPermission = permissions.some(p => userPermissions[p as keyof typeof userPermissions]);
               if (!hasPermission) return null;
             }
             

@@ -29,8 +29,8 @@ const StockManagement: React.FC<StockManagementProps> = ({
   onStartSale,
   onAddPurchase
 }) => {
-  const canEdit = currentUser?.permissions.registerProducts;
-  const canEntry = currentUser?.permissions.stockEntry;
+  const canEdit = currentUser?.permissions?.registerProducts;
+  const canEntry = currentUser?.permissions?.stockEntry;
 
   const [activeTab, setActiveTab] = useState<StockTab>('inventory');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(products[0] || null);
@@ -432,8 +432,8 @@ const StockManagement: React.FC<StockManagementProps> = ({
           {[
             { id: 'inventory', label: 'Inventário Geral' },
             { id: 'details', label: 'Dados do Produto' },
-            { id: 'sales', label: 'Vendas', hidden: !currentUser?.permissions.sales },
-            { id: 'sales_history', label: 'Histórico de Vendas', hidden: !currentUser?.permissions.sales },
+            { id: 'sales', label: 'Vendas', hidden: !currentUser?.permissions?.sales },
+            { id: 'sales_history', label: 'Histórico de Vendas', hidden: !currentUser?.permissions?.sales },
             { id: 'purchases', label: 'Compras', hidden: !canEntry },
             { id: 'purchases_history', label: 'Histórico de Compras', hidden: !canEntry },
           ].filter(tab => !tab.hidden).map((tab) => (
@@ -511,7 +511,7 @@ const StockManagement: React.FC<StockManagementProps> = ({
                             <p className={`text-sm font-black ${isLowStock ? 'text-amber-600' : 'text-slate-900'}`}>{totalStock} un</p>
                           </div>
                           <div className="flex items-center gap-2">
-                            {currentUser?.permissions.sales && (
+                            {currentUser?.permissions?.sales && (
                               <button 
                                 onClick={() => onStartSale?.(product.id)}
                                 className="p-2 bg-emerald-50 border border-emerald-100 rounded-xl text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all shadow-sm"

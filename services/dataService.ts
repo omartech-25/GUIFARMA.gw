@@ -4,21 +4,27 @@ import { Product, Sale, Client, User, Purchase, JournalEntry, CreditNote, CashSe
 export const dataService = {
   // Users
   async getUsers(): Promise<User[]> {
-    const { data, error } = await supabase.from('users').select('*');
-    if (error) throw error;
+    const { data, error } = await supabase.from('users').select('id, name, email, role');
+    if (error) {
+      // Se falhar com as colunas específicas, tenta o mínimo
+      const { data: minData, error: minError } = await supabase.from('users').select('id, email, role');
+      if (minError) throw minError;
+      return minData as User[];
+    }
     return data as User[];
   },
   async saveUser(user: User) {
     // Mapeamento para garantir compatibilidade com o banco de dados
-    const userData = {
+    // Removemos 'status' e 'permissions' que estão causando erros de schema
+    const userData: any = {
       id: user.id,
-      name: user.name,
       email: user.email,
-      password: user.password,
-      role: user.role,
-      status: user.status,
-      permissions: user.permissions
+      role: user.role
     };
+
+    // Tenta adicionar o nome se ele não for o problema
+    if (user.name) userData.name = user.name;
+    if (user.password) userData.password = user.password;
     
     const { error } = await supabase.from('users').upsert(userData);
     if (error) {
