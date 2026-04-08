@@ -1474,10 +1474,10 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
                         <td className="border border-black p-2 text-center text-[10px] font-mono">{item.batchNumber}</td>
                         <td className="border border-black p-2 text-center text-[10px] font-bold">{new Date(item.expiryDate).toLocaleDateString('pt', { month: '2-digit', year: 'numeric' })}</td>
                         <td className="border border-black p-2 text-right text-[11px] font-bold whitespace-nowrap">
-                          {formatCurrency(item.unitPrice).replace('FCFA', '').trim()} FCFA XOF
+                          {formatCurrency(item.unitPrice)}
                         </td>
                         <td className="border border-black p-2 text-right text-[11px] font-bold whitespace-nowrap">
-                          {formatCurrency(item.total).replace('FCFA', '').trim()} FCFA XOF
+                          {formatCurrency(item.total)}
                         </td>
                         <td className="border border-black p-2 text-[10px] text-center italic text-gray-400">n.a</td>
                       </tr>
@@ -1485,7 +1485,7 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
                     <tr>
                       <td className="border border-black p-2 font-bold text-sm text-center bg-gray-50" colSpan={6}>TOTAL</td>
                       <td className="border border-black p-2 font-bold text-sm text-right bg-gray-50 whitespace-nowrap">
-                        {formatCurrency(viewingSale.total).replace('FCFA', '').trim()} FCFA CFA
+                        {formatCurrency(viewingSale.total)}
                       </td>
                       <td className="border border-black p-2 bg-gray-50"></td>
                     </tr>

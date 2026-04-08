@@ -368,7 +368,7 @@ export const MOCK_SALES: Sale[] = [
 
 export const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency: 'XOF', // Closest representation to FCFA
-  }).format(value).replace('XOF', 'FCFA');
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(value) + ' FCFA';
 };

@@ -13,7 +13,7 @@ import Login from './components/Login';
 import LogManagement from './components/LogManagement';
 import Profile from './components/Profile';
 import { ViewType, UserRole, Product, Sale, Client, User, Purchase, JournalEntry, CreditNote, SaleStatus, CashSession, CashMovement, PaymentMethod, UserPermissions, ActivityLog, ActivityType } from './types';
-import { MOCK_PRODUCTS, MOCK_SALES, MOCK_USER, MOCK_CLIENTS, DEFAULT_PERMISSIONS, ROLE_PERMISSIONS } from './constants';
+import { MOCK_PRODUCTS, MOCK_SALES, MOCK_USER, MOCK_CLIENTS, DEFAULT_PERMISSIONS, ROLE_PERMISSIONS, formatCurrency } from './constants';
 import { dataService } from './services/dataService';
 
 const App: React.FC = () => {
@@ -388,7 +388,7 @@ const App: React.FC = () => {
     try {
       setIsSyncing(true);
       await dataService.saveSale(saleWithAudit);
-      logActivity(ActivityType.SALE, `Venda realizada: ${newSale.invoiceNumber}`, `Total: ${newSale.total} CFA para ${newSale.clientName}`, newSale.id, 'Sale');
+      logActivity(ActivityType.SALE, `Venda realizada: ${newSale.invoiceNumber}`, `Total: ${formatCurrency(newSale.total)} para ${newSale.clientName}`, newSale.id, 'Sale');
 
       // Add Cash Movement if paid in cash
       if (newSale.paymentMethod === PaymentMethod.CASH && newSale.status === SaleStatus.PAID) {
@@ -477,7 +477,7 @@ const App: React.FC = () => {
         return updated;
       });
       
-      logActivity(ActivityType.CREDIT_NOTE, `Nota de crédito emitida: ${newCreditNote.creditNoteNumber}`, `Motivo: ${newCreditNote.reason}. Valor: ${newCreditNote.amount} CFA`, newCreditNote.id, 'CreditNote');
+      logActivity(ActivityType.CREDIT_NOTE, `Nota de crédito emitida: ${newCreditNote.creditNoteNumber}`, `Motivo: ${newCreditNote.reason}. Valor: ${formatCurrency(newCreditNote.amount)}`, newCreditNote.id, 'CreditNote');
 
       // Accounting reversal
       const entries: JournalEntry[] = [
@@ -528,7 +528,7 @@ const App: React.FC = () => {
     };
     setSales(prev => prev.map(s => s.id === updatedSale.id ? saleWithAudit : s));
     dataService.saveSale(saleWithAudit).catch(console.error);
-    logActivity(ActivityType.UPDATE, `Venda ${updatedSale.invoiceNumber} editada`, `Total: ${updatedSale.total} CFA`, updatedSale.id, 'Sale');
+    logActivity(ActivityType.UPDATE, `Venda ${updatedSale.invoiceNumber} editada`, `Total: ${formatCurrency(updatedSale.total)}`, updatedSale.id, 'Sale');
   };
 
   const handleDeleteSale = async (saleId: string) => {
@@ -539,7 +539,7 @@ const App: React.FC = () => {
     try {
       setIsSyncing(true);
       await dataService.deleteSale(saleId);
-      logActivity(ActivityType.DELETE, `Venda ${saleToDelete.invoiceNumber} excluída`, `Valor: ${saleToDelete.total} CFA`, saleId, 'Sale');
+      logActivity(ActivityType.DELETE, `Venda ${saleToDelete.invoiceNumber} excluída`, `Valor: ${formatCurrency(saleToDelete.total)}`, saleId, 'Sale');
       setNotification({ type: 'success', message: 'Venda excluída com sucesso.' });
     } catch (error) {
       console.error('Erro ao excluir venda:', error);
@@ -561,7 +561,7 @@ const App: React.FC = () => {
     try {
       setIsSyncing(true);
       await dataService.savePurchase(purchaseWithAudit);
-      logActivity(ActivityType.PURCHASE, `Nova compra registada: ${newPurchase.invoiceNumber}`, `Fornecedor: ${newPurchase.supplier}. Total: ${newPurchase.total} CFA`, newPurchase.id, 'Purchase');
+      logActivity(ActivityType.PURCHASE, `Nova compra registada: ${newPurchase.invoiceNumber}`, `Fornecedor: ${newPurchase.supplier}. Total: ${formatCurrency(newPurchase.total)}`, newPurchase.id, 'Purchase');
     } catch (error) {
       setNotification({ type: 'error', message: 'Erro ao registar compra.' });
     } finally {
@@ -579,7 +579,7 @@ const App: React.FC = () => {
     try {
       setIsSyncing(true);
       await dataService.savePurchase(purchaseWithAudit);
-      logActivity(ActivityType.UPDATE, `Compra ${updatedPurchase.invoiceNumber} editada`, `Fornecedor: ${updatedPurchase.supplier}. Total: ${updatedPurchase.total} CFA`, updatedPurchase.id, 'Purchase');
+      logActivity(ActivityType.UPDATE, `Compra ${updatedPurchase.invoiceNumber} editada`, `Fornecedor: ${updatedPurchase.supplier}. Total: ${formatCurrency(updatedPurchase.total)}`, updatedPurchase.id, 'Purchase');
       setNotification({ type: 'success', message: 'Compra atualizada com sucesso.' });
     } catch (error) {
       setNotification({ type: 'error', message: 'Erro ao atualizar compra.' });
@@ -717,7 +717,7 @@ const App: React.FC = () => {
     };
     setCashSessions(prev => [newSession, ...prev]);
     dataService.saveCashSession(newSession).catch(console.error);
-    logActivity(ActivityType.CASH_OPEN, `Caixa aberto`, `Saldo inicial: ${openingBalance} CFA`, newSession.id, 'CashSession');
+    logActivity(ActivityType.CASH_OPEN, `Caixa aberto`, `Saldo inicial: ${formatCurrency(openingBalance)}`, newSession.id, 'CashSession');
   };
 
   const handleCloseCashSession = (closingBalance: number) => {
@@ -745,7 +745,7 @@ const App: React.FC = () => {
       return s;
     }));
     if (closedSessionId) {
-      logActivity(ActivityType.CASH_CLOSE, `Caixa fechado`, `Saldo final: ${closingBalance} CFA`, closedSessionId, 'CashSession');
+      logActivity(ActivityType.CASH_CLOSE, `Caixa fechado`, `Saldo final: ${formatCurrency(closingBalance)}`, closedSessionId, 'CashSession');
     }
   };
 

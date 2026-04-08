@@ -503,17 +503,17 @@ const PurchaseManagement: React.FC<PurchaseManagementProps> = ({ products, purch
                         <td className="border border-black p-2 text-center text-[10px] font-mono">{item.batchNumber}</td>
                         <td className="border border-black p-2 text-center text-[10px] font-bold">{new Date(item.expiryDate).toLocaleDateString('pt', { month: '2-digit', year: 'numeric' })}</td>
                         <td className="border border-black p-2 text-right text-[11px] font-bold whitespace-nowrap">
-                          {formatCurrency(item.purchasePrice).replace('FCFA', '').trim()} FCFA
+                          {formatCurrency(item.purchasePrice)}
                         </td>
                         <td className="border border-black p-2 text-right text-[11px] font-bold whitespace-nowrap">
-                          {formatCurrency(item.total).replace('FCFA', '').trim()} FCFA
+                          {formatCurrency(item.total)}
                         </td>
                       </tr>
                     ))}
                     <tr>
                       <td className="border border-black p-2 font-bold text-sm text-center bg-gray-50" colSpan={5}>TOTAL COMPRA</td>
                       <td className="border border-black p-2 font-bold text-sm text-right bg-gray-50 whitespace-nowrap">
-                        {formatCurrency(viewingPurchase.total).replace('FCFA', '').trim()} FCFA
+                        {formatCurrency(viewingPurchase.total)}
                       </td>
                     </tr>
                   </tbody>
