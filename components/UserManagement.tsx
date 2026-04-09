@@ -342,7 +342,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, currentUser, onA
                             <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs">
                               {user.name.slice(0, 2).toUpperCase()}
                             </div>
-                            <span className="font-bold text-slate-900">{user.employeeName}</span>
+                            <span className="font-bold text-slate-900">{user.employeeName || user.name}</span>
                           </div>
                         </td>
                         <td className="py-4 px-4 font-mono text-xs text-slate-500">{user.name}</td>

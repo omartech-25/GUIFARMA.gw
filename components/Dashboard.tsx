@@ -48,7 +48,7 @@ const Dashboard: React.FC<DashboardProps> = ({ products = [], sales = [], curren
     <div className="space-y-6 animate-fadeIn">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-xl md:text-2xl font-bold text-slate-800">Bem-vindo, {currentUser?.name || 'Utilizador'}</h2>
+          <h2 className="text-xl md:text-2xl font-bold text-slate-800">Bem-vindo, {currentUser?.employeeName || currentUser?.name || 'Utilizador'}</h2>
           <p className="text-sm text-slate-500">Aqui está o resumo do MedStock Pro hoje.</p>
         </div>
       </div>

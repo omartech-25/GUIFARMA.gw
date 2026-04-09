@@ -4,32 +4,62 @@ import { Product, Sale, Client, User, Purchase, JournalEntry, CreditNote, CashSe
 export const dataService = {
   // Users
   async getUsers(): Promise<User[]> {
-    const { data, error } = await supabase.from('users').select('id, name, email, role');
-    if (error) {
-      // Se falhar com as colunas específicas, tenta o mínimo
-      const { data: minData, error: minError } = await supabase.from('users').select('id, email, role');
-      if (minError) throw minError;
-      return minData as User[];
+    let result;
+    try {
+      result = await supabase.from('users').select('id, name, email, role, employee_name');
+    } catch (e) {
+      result = { data: null, error: { code: 'PGRST204' } };
     }
-    return data as User[];
+    
+    const { data, error } = result as any;
+    
+    if (error || !data) {
+      const { data: minData, error: minError } = await supabase.from('users').select('id, name, email, role');
+      if (minError) throw minError;
+      return minData.map((u: any) => ({
+        ...u,
+        employeeName: u.name
+      })) as User[];
+    }
+    
+    return data.map((u: any) => ({
+      ...u,
+      employeeName: u.employee_name || u.name
+    })) as User[];
   },
   async saveUser(user: User) {
-    // Mapeamento para garantir compatibilidade com o banco de dados
-    // Removemos 'status' e 'permissions' que estão causando erros de schema
     const userData: any = {
       id: user.id,
       email: user.email,
-      role: user.role
+      role: user.role,
+      name: user.name,
+      status: user.status || 'Ativo',
+      permissions: user.permissions,
+      employee_name: user.employeeName
     };
 
-    // Tenta adicionar o nome se ele não for o problema
-    if (user.name) userData.name = user.name;
     if (user.password) userData.password = user.password;
     
+    // Tenta salvar com todos os campos
     const { error } = await supabase.from('users').upsert(userData);
+
     if (error) {
-      console.error('Erro ao salvar usuário no Supabase:', error);
-      throw error;
+      // Se o erro for de coluna inexistente (PGRST204), tenta remover os campos problemáticos um a um
+      if (error.code === 'PGRST204') {
+        const fallbackData = { ...userData };
+        
+        // Se o erro mencionar especificamente uma coluna, poderíamos ser mais precisos, 
+        // mas aqui tentamos o conjunto mínimo garantido
+        delete fallbackData.permissions;
+        delete fallbackData.status;
+        delete fallbackData.employee_name;
+        
+        const { error: retryError } = await supabase.from('users').upsert(fallbackData);
+        if (retryError) throw retryError;
+      } else {
+        console.error('Erro ao salvar usuário no Supabase:', error);
+        throw error;
+      }
     }
   },
   async checkEmailExists(email: string): Promise<boolean> {
