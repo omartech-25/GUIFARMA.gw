@@ -6,7 +6,7 @@ export const dataService = {
   async getUsers(): Promise<User[]> {
     let result;
     try {
-      result = await supabase.from('users').select('id, name, email, role, employee_name');
+      result = await supabase.from('users').select('id, name, email, role, employee_name, avatar_url');
     } catch (e) {
       result = { data: null, error: { code: 'PGRST204' } };
     }
@@ -18,13 +18,15 @@ export const dataService = {
       if (minError) throw minError;
       return minData.map((u: any) => ({
         ...u,
-        employeeName: u.name
+        employeeName: u.name,
+        avatarUrl: undefined
       })) as User[];
     }
     
     return data.map((u: any) => ({
       ...u,
-      employeeName: u.employee_name || u.name
+      employeeName: u.employee_name || u.name,
+      avatarUrl: u.avatar_url
     })) as User[];
   },
   async saveUser(user: User) {
@@ -35,7 +37,8 @@ export const dataService = {
       name: user.name,
       status: user.status || 'Ativo',
       permissions: user.permissions,
-      employee_name: user.employeeName
+      employee_name: user.employeeName,
+      avatar_url: user.avatarUrl
     };
 
     if (user.password) userData.password = user.password;
@@ -53,6 +56,7 @@ export const dataService = {
         delete fallbackData.permissions;
         delete fallbackData.status;
         delete fallbackData.employee_name;
+        delete fallbackData.avatar_url;
         
         const { error: retryError } = await supabase.from('users').upsert(fallbackData);
         if (retryError) throw retryError;

@@ -12,6 +12,7 @@ const Profile: React.FC<ProfileProps> = ({ user, onUpdateUser }) => {
   const [formData, setFormData] = useState({
     employeeName: user.employeeName || user.name,
     email: user.email,
+    avatarUrl: user.avatarUrl || '',
     currentPassword: '',
     newPassword: '',
     confirmPassword: ''
@@ -39,12 +40,28 @@ const Profile: React.FC<ProfileProps> = ({ user, onUpdateUser }) => {
       ...user,
       employeeName: formData.employeeName,
       email: formData.email,
+      avatarUrl: formData.avatarUrl,
       password: formData.newPassword || user.password
     };
 
     onUpdateUser(updatedUser);
     setNotification({ type: 'success', message: 'Perfil atualizado com sucesso!' });
     setFormData(prev => ({ ...prev, currentPassword: '', newPassword: '', confirmPassword: '' }));
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 1024 * 1024) { // 1MB limit
+        setNotification({ type: 'error', message: 'A imagem deve ter menos de 1MB.' });
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData(prev => ({ ...prev, avatarUrl: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   return (
@@ -58,8 +75,23 @@ const Profile: React.FC<ProfileProps> = ({ user, onUpdateUser }) => {
         {/* Card de Informações */}
         <div className="lg:col-span-1">
           <div className="bg-white rounded-[32px] p-8 shadow-xl shadow-slate-200/50 border border-slate-100 text-center">
-            <div className="w-24 h-24 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl font-black">
-              {user.name.slice(0, 2).toUpperCase()}
+            <div className="relative group mx-auto mb-4 w-24 h-24">
+              {formData.avatarUrl ? (
+                <img 
+                  src={formData.avatarUrl} 
+                  alt="Avatar" 
+                  className="w-24 h-24 rounded-full object-cover border-4 border-emerald-100"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <div className="w-24 h-24 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-3xl font-black">
+                  {user.name.slice(0, 2).toUpperCase()}
+                </div>
+              )}
+              <label className="absolute inset-0 flex items-center justify-center bg-black/40 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                <span className="text-[10px] font-bold uppercase">Mudar</span>
+                <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
+              </label>
             </div>
             <h2 className="text-xl font-bold text-slate-900">{user.employeeName || user.name}</h2>
             <p className="text-sm text-slate-500 font-medium mb-6">{user.role}</p>

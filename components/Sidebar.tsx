@@ -102,9 +102,18 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setView, user, onLogout,
 
         <div className="p-4 border-t border-slate-800">
           <div className="flex items-center gap-3 mb-4 p-2">
-            <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-sm font-bold uppercase">
-              {user.name.slice(0, 2)}
-            </div>
+            {user.avatarUrl ? (
+              <img 
+                src={user.avatarUrl} 
+                alt="Avatar" 
+                className="w-10 h-10 rounded-full object-cover border border-slate-700"
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-sm font-bold uppercase">
+                {user.name.slice(0, 2)}
+              </div>
+            )}
             <div className="overflow-hidden">
               <p className="text-sm font-semibold truncate">{user.employeeName || user.name}</p>
               <p className="text-xs text-slate-500 truncate">{user.role}</p>

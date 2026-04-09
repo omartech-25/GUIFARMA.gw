@@ -51,6 +51,7 @@ export interface User {
   password?: string;
   status: 'Ativo' | 'Inativo';
   permissions: UserPermissions;
+  avatarUrl?: string;
 }
 
 export enum MedicineCategory {

@@ -34,7 +34,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, currentUser, onA
     confirmPassword: '',
     role: UserRole.SELLER,
     status: 'Ativo' as 'Ativo' | 'Inativo',
-    imageUrl: '',
+    avatarUrl: '',
     permissions: ROLE_PERMISSIONS[UserRole.SELLER]
   });
 
@@ -48,7 +48,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, currentUser, onA
         confirmPassword: '',
         role: selectedUser.role,
         status: selectedUser.status || 'Ativo',
-        imageUrl: '', // Placeholder
+        avatarUrl: selectedUser.avatarUrl || '',
         permissions: selectedUser.permissions || ROLE_PERMISSIONS[selectedUser.role]
       });
     } else {
@@ -60,7 +60,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, currentUser, onA
         confirmPassword: '',
         role: UserRole.SELLER,
         status: 'Ativo',
-        imageUrl: '',
+        avatarUrl: '',
         permissions: ROLE_PERMISSIONS[UserRole.SELLER]
       });
     }
@@ -88,6 +88,21 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, currentUser, onA
     }
   }, [errorToast]);
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 1024 * 1024) { // 1MB limit
+        setErrorToast({ show: true, message: 'A imagem deve ter menos de 1MB.' });
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData(prev => ({ ...prev, avatarUrl: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const filteredUsers = users.filter(u => 
     u.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     u.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -110,6 +125,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, currentUser, onA
         password: formData.password || selectedUser.password,
         role: formData.role,
         status: formData.status,
+        avatarUrl: formData.avatarUrl,
         permissions: formData.permissions
       };
       onUpdateUser(updatedUser);
@@ -123,6 +139,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, currentUser, onA
         password: formData.password,
         role: formData.role,
         status: formData.status,
+        avatarUrl: formData.avatarUrl,
         permissions: formData.permissions
       };
       onAddUser(newUser);
@@ -166,8 +183,24 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, currentUser, onA
   };
 
   const handleImageUpload = () => {
-    setImageUrlInput(formData.imageUrl || '');
-    setIsImageUrlModalOpen(true);
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (e: any) => {
+      const file = e.target.files?.[0];
+      if (file) {
+        if (file.size > 1024 * 1024) {
+          setErrorToast({ show: true, message: 'A imagem deve ter menos de 1MB.' });
+          return;
+        }
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setFormData(prev => ({ ...prev, avatarUrl: reader.result as string }));
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+    input.click();
   };
 
   const saveImageUrl = () => {
@@ -339,9 +372,18 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, currentUser, onA
                       <tr key={user.id} className="border-t border-slate-50 hover:bg-slate-50 transition-colors group">
                         <td className="py-4 px-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs">
-                              {user.name.slice(0, 2).toUpperCase()}
-                            </div>
+                            {user.avatarUrl ? (
+                              <img 
+                                src={user.avatarUrl} 
+                                alt="Avatar" 
+                                className="w-8 h-8 rounded-full object-cover border border-slate-200"
+                                referrerPolicy="no-referrer"
+                              />
+                            ) : (
+                              <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs">
+                                {user.name.slice(0, 2).toUpperCase()}
+                              </div>
+                            )}
                             <span className="font-bold text-slate-900">{user.employeeName || user.name}</span>
                           </div>
                         </td>
@@ -477,8 +519,8 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, currentUser, onA
 
               <div className="lg:col-span-4 flex flex-col items-center justify-center space-y-4">
                 <div className="w-full aspect-square max-w-[250px] bg-slate-100 rounded-3xl border-4 border-slate-200 flex flex-col items-center justify-center text-slate-300 relative overflow-hidden group">
-                  {formData.imageUrl ? (
-                    <img src={formData.imageUrl} alt="Usuário" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  {formData.avatarUrl ? (
+                    <img src={formData.avatarUrl} alt="Usuário" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                   ) : (
                     <div className="flex flex-col items-center opacity-20">
                       <div className="w-32 h-32 rounded-full bg-slate-400 mb-4"></div>
