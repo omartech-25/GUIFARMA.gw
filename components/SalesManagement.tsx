@@ -1580,7 +1580,7 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
                 )}
 
                 {/* QR Code and Authorization URL */}
-                <div className="mt-12 pt-8 border-t border-gray-100 flex flex-col items-start gap-4">
+                <div className="mt-12 pt-8 border-t border-gray-100 flex flex-col items-start gap-4 invoice-footer">
                   <div className="bg-white p-1 border border-gray-200 rounded-lg">
                     <QRCodeSVG 
                       value="https://kontaktu.mef.gw:443/invoice_issuance_authorization/00000049202529" 
