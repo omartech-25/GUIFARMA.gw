@@ -90,6 +90,17 @@ export interface Batch {
   isColdChain: boolean;
 }
 
+export interface PriceHistoryEntry {
+  id: string;
+  date: string;
+  type: 'Compra' | 'Venda';
+  oldPrice: number;
+  newPrice: number;
+  userId: string;
+  userName: string;
+  reason?: string;
+}
+
 export interface Product extends AuditInfo {
   id: string;
   code: string;
@@ -108,6 +119,7 @@ export interface Product extends AuditInfo {
   unitsPerBox: number;
   isControlled?: boolean; // For regulatory control
   imageUrl?: string;
+  priceHistory?: PriceHistoryEntry[];
 }
 
 export enum PaymentMethod {

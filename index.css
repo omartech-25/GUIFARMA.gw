@@ -129,7 +129,6 @@ body {
   }
 
   .invoice-print {
-    border: 2px solid black !important;
     padding: 2rem !important;
     display: block !important;
     width: 100% !important;

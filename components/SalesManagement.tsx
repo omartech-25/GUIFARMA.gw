@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Search, Plus, ShoppingCart, Users, Trash2, CheckCircle2, Pill, ReceiptText, X, Filter, TrendingUp, Calendar, CreditCard, ArrowRight, Barcode, AlertTriangle, Printer, Download, Share2, ArrowUpRight, ArrowDownRight, LayoutGrid, List, Edit } from 'lucide-react';
+import { Search, Plus, ShoppingCart, Users, Trash2, CheckCircle2, Pill, ReceiptText, X, Filter, TrendingUp, Calendar, CreditCard, ArrowRight, Barcode, AlertTriangle, Printer, Download, Share2, ArrowUpRight, ArrowDownRight, LayoutGrid, List, Edit, ClipboardList } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -73,6 +73,7 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
   const [paymentReference, setPaymentReference] = useState('');
   const [observations, setObservations] = useState('');
   const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
+  const [isGuiaRecolha, setIsGuiaRecolha] = useState(false);
   const [viewingSale, setViewingSale] = useState<Sale | null>(null);
   const [isCreditNoteModalOpen, setIsCreditNoteModalOpen] = useState(false);
   const [creditNoteReason, setCreditNoteReason] = useState('');
@@ -341,8 +342,8 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
     const newSale: Sale = {
       id: `s-${Date.now()}`,
       invoiceNumber: manualInvoiceNumber && manualInvoiceYear 
-        ? `GF-${manualInvoiceYear}-${manualInvoiceNumber.padStart(6, '0')}`
-        : `GF-${now.getFullYear()}-${(sales.length + 100).toString().padStart(6, '0')}`,
+        ? `GF-${manualInvoiceNumber.padStart(4, '0')}-${manualInvoiceYear}`
+        : `GF-${(sales.length + 100).toString().padStart(4, '0')}-${now.getFullYear()}`,
       date: now.toISOString(),
       dueDate: dueDate.toISOString(),
       clientId: selectedClientId,
@@ -390,6 +391,7 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
     setPaymentReference('');
     setManualInvoiceNumber('');
     setManualInvoiceYear('');
+    setIsGuiaRecolha(false);
     setIsInvoiceOpen(true);
     setIsPDVOpen(false);
     onPDVClose?.();
@@ -620,7 +622,29 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
               onChange={e => setListSearchTerm(e.target.value)}
             />
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 w-full md:w-auto">
+            <div className="relative flex-1 md:w-64">
+              <ClipboardList className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-400" size={18} />
+              <input 
+                type="text" 
+                placeholder="Gerar Guia por Nº Fatura..." 
+                className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none transition-all shadow-sm text-sm"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    const val = (e.target as HTMLInputElement).value;
+                    const sale = sales.find(s => s.invoiceNumber.toLowerCase() === val.toLowerCase());
+                    if (sale) {
+                      setViewingSale(sale);
+                      setIsGuiaRecolha(true);
+                      setIsInvoiceOpen(true);
+                      (e.target as HTMLInputElement).value = '';
+                    } else {
+                      setErrorToast({ show: true, message: 'Fatura não encontrada' });
+                    }
+                  }
+                }}
+              />
+            </div>
             <button className="p-3 bg-white border border-slate-200 rounded-2xl text-slate-500 hover:bg-slate-50 transition-colors">
               <Filter size={20} />
             </button>
@@ -646,6 +670,7 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
                   key={sale.id} 
                   onClick={() => {
                     setViewingSale(sale);
+                    setIsGuiaRecolha(false);
                     setIsInvoiceOpen(true);
                   }}
                   className="hover:bg-slate-50/50 transition-colors group cursor-pointer"
@@ -699,6 +724,19 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
                         onClick={(e) => {
                           e.stopPropagation();
                           setViewingSale(sale);
+                          setIsGuiaRecolha(true);
+                          setIsInvoiceOpen(true);
+                        }}
+                        className="p-2 text-slate-300 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                        title="Gerar Guia de Recolha"
+                      >
+                        <ClipboardList size={18} />
+                      </button>
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setViewingSale(sale);
+                          setIsGuiaRecolha(false);
                           setIsInvoiceOpen(true);
                           setTimeout(() => window.print(), 500);
                         }}
@@ -711,6 +749,7 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
                         onClick={(e) => {
                           e.stopPropagation();
                           setViewingSale(sale);
+                          setIsGuiaRecolha(false);
                           setIsInvoiceOpen(true);
                         }}
                         className="p-2 text-slate-300 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
@@ -1404,7 +1443,7 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
           >
             {/* Invoice Content (Matches Image) */}
             <div className="p-12 bg-white text-black font-sans print:p-4">
-              <div ref={invoiceRef} className="max-w-[800px] mx-auto border-2 border-black p-8 invoice-print">
+              <div ref={invoiceRef} className="max-w-[800px] mx-auto p-8 invoice-print">
                 {/* Header */}
                 <div className="flex justify-between items-start mb-12">
                   <div className="flex flex-col items-center">
@@ -1428,7 +1467,7 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
                 <div className="flex justify-center mb-8">
                   <div className="text-center">
                     <h2 className="text-xl font-bold uppercase tracking-wider border-b-2 border-black inline-block pb-1">
-                      SÉRIE A FATURA N°{viewingSale.invoiceNumber}
+                      {isGuiaRecolha ? 'GUIA DE RECOLHA' : 'SÉRIE A FATURA'} N°{viewingSale.invoiceNumber}
                     </h2>
                   </div>
                 </div>
@@ -1533,6 +1572,13 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
                   </div>
                 </div>
 
+                {isGuiaRecolha && (
+                  <div className="mt-8 text-center border-2 border-black p-4">
+                    <p className="text-sm font-black uppercase tracking-widest">ESTE DOCUMENTO NÃO SERVE DE FATURA</p>
+                    <p className="text-[10px] font-bold text-gray-600 mt-1 italic">Documento emitido apenas para fins de recolha/transporte de mercadoria.</p>
+                  </div>
+                )}
+
                 {/* QR Code and Authorization URL */}
                 <div className="mt-12 pt-8 border-t border-gray-100 flex flex-col items-start gap-4">
                   <div className="bg-white p-1 border border-gray-200 rounded-lg">
@@ -1557,7 +1603,18 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
                   className="flex items-center gap-3 bg-slate-900 text-white px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-800 transition-all shadow-2xl shadow-slate-900/20 group"
                 >
                   <Printer size={20} className="group-hover:scale-110 transition-transform" />
-                  Imprimir Fatura
+                  Imprimir {isGuiaRecolha ? 'Guia' : 'Fatura'}
+                </button>
+                <button 
+                  onClick={() => setIsGuiaRecolha(!isGuiaRecolha)}
+                  className={`flex items-center gap-3 px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${
+                    isGuiaRecolha 
+                      ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' 
+                      : 'bg-slate-100 text-slate-900 hover:bg-slate-200'
+                  }`}
+                >
+                  <ClipboardList size={20} />
+                  {isGuiaRecolha ? 'Ver Fatura' : 'Ver Guia de Recolha'}
                 </button>
                 <button 
                   onClick={handleDownloadPDF}

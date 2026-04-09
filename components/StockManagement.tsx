@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { Search, Plus, Filter, ChevronRight, Package, Calendar, ShoppingCart, X, CheckCircle2, ThermometerSnowflake, MapPin, Save, Trash2, Image as ImageIcon, Calculator, History, ArrowLeftRight, AlertCircle, AlertTriangle } from 'lucide-react';
-import { Product, Batch, MedicineCategory, PharmaceuticalForm, Sale, Purchase, User, UserRole } from '../types';
+import { Product, Batch, MedicineCategory, PharmaceuticalForm, Sale, Purchase, User, UserRole, PriceHistoryEntry } from '../types';
 import { formatCurrency } from '@/constants';
 
 interface StockManagementProps {
@@ -16,7 +16,7 @@ interface StockManagementProps {
   onAddPurchase?: (purchase: Purchase) => void;
 }
 
-type StockTab = 'inventory' | 'details' | 'sales' | 'sales_history' | 'purchases' | 'purchases_history';
+type StockTab = 'inventory' | 'details' | 'sales' | 'sales_history' | 'purchases' | 'purchases_history' | 'price_history';
 
 const StockManagement: React.FC<StockManagementProps> = ({ 
   products, 
@@ -32,6 +32,22 @@ const StockManagement: React.FC<StockManagementProps> = ({
   const canEdit = currentUser?.permissions?.registerProducts;
   const canEntry = currentUser?.permissions?.stockEntry;
   const isAdmin = currentUser?.role === UserRole.ADMIN;
+
+  const addPriceHistory = (product: Product, type: 'Compra' | 'Venda', oldPrice: number, newPrice: number): PriceHistoryEntry[] => {
+    if (oldPrice === newPrice) return product.priceHistory || [];
+    
+    const newEntry: PriceHistoryEntry = {
+      id: `ph-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      date: new Date().toISOString(),
+      type,
+      oldPrice,
+      newPrice,
+      userId: currentUser?.id || 'u1',
+      userName: currentUser?.employeeName || currentUser?.name || 'Sistema'
+    };
+    
+    return [newEntry, ...(product.priceHistory || [])];
+  };
 
   const [activeTab, setActiveTab] = useState<StockTab>('inventory');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(products[0] || null);
@@ -199,17 +215,40 @@ const StockManagement: React.FC<StockManagementProps> = ({
     };
 
     if (selectedProduct) {
+      let updatedPriceHistory = selectedProduct.priceHistory || [];
+      
+      // Check for selling price change
+      if (parseFloat(formData.price) !== selectedProduct.sellingPriceWholesale) {
+        updatedPriceHistory = addPriceHistory(
+          selectedProduct, 
+          'Venda', 
+          selectedProduct.sellingPriceWholesale, 
+          parseFloat(formData.price)
+        );
+      }
+
       const updatedBatches = [...selectedProduct.batches];
       const newStock = parseInt(formData.stock) || 0;
       const currentStock = selectedProduct.batches.reduce((sum, b) => sum + b.quantity, 0);
 
       if (newStock !== currentStock) {
         if (updatedBatches.length > 0) {
+          // Check for purchase price change in the first batch if it's being adjusted
+          if (parseFloat(formData.cost) !== updatedBatches[0].purchasePrice) {
+            updatedPriceHistory = addPriceHistory(
+              { ...selectedProduct, priceHistory: updatedPriceHistory }, 
+              'Compra', 
+              updatedBatches[0].purchasePrice, 
+              parseFloat(formData.cost)
+            );
+          }
+
           // Adjust the first batch to reflect the new total stock and expiry date
           updatedBatches[0] = { 
             ...updatedBatches[0], 
             quantity: newStock,
-            expiryDate: formData.expiryDate || updatedBatches[0].expiryDate
+            expiryDate: formData.expiryDate || updatedBatches[0].expiryDate,
+            purchasePrice: parseFloat(formData.cost) || updatedBatches[0].purchasePrice
           };
         } else if (newStock > 0) {
           updatedBatches.push({
@@ -223,13 +262,35 @@ const StockManagement: React.FC<StockManagementProps> = ({
             location: formData.location,
             isColdChain: false
           });
+          
+          if (parseFloat(formData.cost) > 0) {
+            updatedPriceHistory = addPriceHistory(
+              { ...selectedProduct, priceHistory: updatedPriceHistory }, 
+              'Compra', 
+              0, 
+              parseFloat(formData.cost)
+            );
+          }
         }
-      } else if (updatedBatches.length > 0 && formData.expiryDate !== updatedBatches[0].expiryDate) {
-        // Even if stock is same, update expiry date if changed
-        updatedBatches[0] = { ...updatedBatches[0], expiryDate: formData.expiryDate };
+      } else if (updatedBatches.length > 0) {
+        let changed = false;
+        if (formData.expiryDate !== updatedBatches[0].expiryDate) {
+          updatedBatches[0] = { ...updatedBatches[0], expiryDate: formData.expiryDate };
+          changed = true;
+        }
+        if (parseFloat(formData.cost) !== updatedBatches[0].purchasePrice) {
+          updatedPriceHistory = addPriceHistory(
+            { ...selectedProduct, priceHistory: updatedPriceHistory }, 
+            'Compra', 
+            updatedBatches[0].purchasePrice, 
+            parseFloat(formData.cost)
+          );
+          updatedBatches[0] = { ...updatedBatches[0], purchasePrice: parseFloat(formData.cost) };
+          changed = true;
+        }
       }
 
-      onUpdateProduct?.({ ...selectedProduct, ...productData, batches: updatedBatches } as Product);
+      onUpdateProduct?.({ ...selectedProduct, ...productData, batches: updatedBatches, priceHistory: updatedPriceHistory } as Product);
       setSuccessToast({ show: true, message: 'Produto atualizado com sucesso!' });
     } else {
       const newProduct: Product = {
@@ -247,6 +308,26 @@ const StockManagement: React.FC<StockManagementProps> = ({
           isColdChain: false
         }] : [],
         unitsPerBox: 1,
+        priceHistory: parseFloat(formData.cost) > 0 || parseFloat(formData.price) > 0 ? [
+          ...(parseFloat(formData.cost) > 0 ? [{
+            id: `ph-c-${Date.now()}`,
+            date: new Date().toISOString(),
+            type: 'Compra' as const,
+            oldPrice: 0,
+            newPrice: parseFloat(formData.cost),
+            userId: currentUser?.id || 'u1',
+            userName: currentUser?.employeeName || currentUser?.name || 'Sistema'
+          }] : []),
+          ...(parseFloat(formData.price) > 0 ? [{
+            id: `ph-v-${Date.now()}`,
+            date: new Date().toISOString(),
+            type: 'Venda' as const,
+            oldPrice: 0,
+            newPrice: parseFloat(formData.price),
+            userId: currentUser?.id || 'u1',
+            userName: currentUser?.employeeName || currentUser?.name || 'Sistema'
+          }] : [])
+        ] : []
       } as Product;
       onAddProduct?.(newProduct);
       setSelectedProduct(newProduct);
@@ -293,6 +374,16 @@ const StockManagement: React.FC<StockManagementProps> = ({
     const quantity = parseInt(purchaseFormData.quantity);
     const purchasePrice = parseFloat(purchaseFormData.purchasePrice);
 
+    let updatedPriceHistory = selectedProduct.priceHistory || [];
+    
+    // Check if the purchase price is different from the last known purchase price
+    const lastPurchaseEntry = updatedPriceHistory.find(ph => ph.type === 'Compra');
+    const lastPurchasePrice = lastPurchaseEntry ? lastPurchaseEntry.newPrice : (selectedProduct.batches[0]?.purchasePrice || 0);
+    
+    if (purchasePrice !== lastPurchasePrice) {
+      updatedPriceHistory = addPriceHistory(selectedProduct, 'Compra', lastPurchasePrice, purchasePrice);
+    }
+
     const newBatch: Batch = {
       id: `b-${Date.now()}`,
       batchNumber: purchaseFormData.batchNumber || `LOT-${Date.now().toString().slice(-6)}`,
@@ -307,7 +398,8 @@ const StockManagement: React.FC<StockManagementProps> = ({
 
     const updatedProduct = {
       ...selectedProduct,
-      batches: [...selectedProduct.batches, newBatch]
+      batches: [...selectedProduct.batches, newBatch],
+      priceHistory: updatedPriceHistory
     };
 
     onUpdateProduct(updatedProduct);
@@ -437,6 +529,7 @@ const StockManagement: React.FC<StockManagementProps> = ({
             { id: 'sales_history', label: 'Histórico de Vendas', hidden: !currentUser?.permissions?.sales },
             { id: 'purchases', label: 'Compras', hidden: !canEntry },
             { id: 'purchases_history', label: 'Histórico de Compras', hidden: !canEntry },
+            { id: 'price_history', label: 'Histórico de Preços' },
           ].filter(tab => !tab.hidden).map((tab) => (
             <button
               key={tab.id}
@@ -1033,6 +1126,62 @@ const StockManagement: React.FC<StockManagementProps> = ({
                     {productPurchases.length === 0 && (
                       <tr>
                         <td colSpan={7} className="py-20 text-center text-slate-300 font-medium italic">Nenhuma compra registrada para este produto.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'price_history' && (
+            <div className="space-y-4 animate-fadeIn">
+              <h3 className="text-xs font-black uppercase tracking-widest text-slate-900 border-b border-slate-100 pb-2">Histórico de Alterações de Preços</h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead className="text-[10px] font-black uppercase text-slate-400">
+                    <tr>
+                      <th className="pb-4">Data</th>
+                      <th className="pb-4">Tipo</th>
+                      <th className="pb-4 text-right">Preço Anterior</th>
+                      <th className="pb-4 text-right">Novo Preço</th>
+                      <th className="pb-4 text-center">Variação</th>
+                      <th className="pb-4">Usuário</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-sm">
+                    {selectedProduct?.priceHistory?.map((entry) => {
+                      const diff = entry.newPrice - entry.oldPrice;
+                      const percent = entry.oldPrice > 0 ? (diff / entry.oldPrice) * 100 : 0;
+                      
+                      return (
+                        <tr key={entry.id} className="border-t border-slate-50 hover:bg-slate-50 transition-colors">
+                          <td className="py-3 font-medium">{new Date(entry.date).toLocaleString('pt')}</td>
+                          <td className="py-3">
+                            <span className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase ${
+                              entry.type === 'Venda' ? 'bg-emerald-100 text-emerald-600' : 'bg-blue-100 text-blue-600'
+                            }`}>
+                              {entry.type}
+                            </span>
+                          </td>
+                          <td className="py-3 text-right text-slate-500">{formatCurrency(entry.oldPrice)}</td>
+                          <td className="py-3 text-right font-black text-slate-900">{formatCurrency(entry.newPrice)}</td>
+                          <td className="py-3 text-center">
+                            {entry.oldPrice > 0 ? (
+                              <span className={`font-bold text-xs ${diff > 0 ? 'text-red-500' : diff < 0 ? 'text-emerald-500' : 'text-slate-400'}`}>
+                                {diff > 0 ? '+' : ''}{percent.toFixed(1)}%
+                              </span>
+                            ) : (
+                              <span className="text-slate-400 text-xs">-</span>
+                            )}
+                          </td>
+                          <td className="py-3 text-slate-600 text-xs">{entry.userName}</td>
+                        </tr>
+                      );
+                    })}
+                    {(!selectedProduct?.priceHistory || selectedProduct.priceHistory.length === 0) && (
+                      <tr>
+                        <td colSpan={6} className="py-20 text-center text-slate-300 font-medium italic">Nenhuma alteração de preço registrada.</td>
                       </tr>
                     )}
                   </tbody>
