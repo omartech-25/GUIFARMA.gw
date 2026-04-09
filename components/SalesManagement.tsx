@@ -360,7 +360,7 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
       bankName: paymentMethod === PaymentMethod.TRANSFER ? bankName : undefined,
       paymentReference: paymentReference || undefined,
       status: SaleStatus.PAID, // Auto-paid for now or pending if credit
-      sellerId: 'u1',
+      sellerId: currentUser?.id || 'u1',
       observations: observations || undefined,
       isVatExempt: ivaRate === 0
     };

@@ -109,8 +109,33 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, currentUser, onA
     u.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const validateEmail = (email: string) => {
+    return String(email)
+      .toLowerCase()
+      .match(
+        /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
+      );
+  };
+
   const handleSave = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+    
+    if (!formData.employeeName || !formData.name || !formData.email) {
+      setErrorToast({ show: true, message: 'Por favor, preencha todos os campos obrigatórios!' });
+      return;
+    }
+
+    if (!validateEmail(formData.email)) {
+      setErrorToast({ show: true, message: 'Por favor, insira um email válido!' });
+      return;
+    }
+
+    const emailExists = users.some(u => u.email.toLowerCase() === formData.email.toLowerCase() && u.id !== selectedUser?.id);
+    if (emailExists) {
+      setErrorToast({ show: true, message: 'Este email já está em uso por outro usuário!' });
+      return;
+    }
+
     if (formData.password !== formData.confirmPassword) {
       setErrorToast({ show: true, message: 'As senhas não coincidem!' });
       return;
@@ -452,6 +477,18 @@ const UserManagement: React.FC<UserManagementProps> = ({ users, currentUser, onA
                     placeholder="Digite o nome completo do usuário."
                     value={formData.employeeName}
                     onChange={e => setFormData({...formData, employeeName: e.target.value})}
+                  />
+                </div>
+
+                <div className="grid grid-cols-12 gap-4 items-center">
+                  <label className="col-span-4 text-[11px] font-bold text-slate-500 uppercase text-right pr-4">Email:</label>
+                  <input 
+                    required
+                    type="email" 
+                    className="col-span-8 px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-400 outline-none text-sm font-medium"
+                    placeholder="exemplo@guifarma.gw"
+                    value={formData.email}
+                    onChange={e => setFormData({...formData, email: e.target.value})}
                   />
                 </div>
 

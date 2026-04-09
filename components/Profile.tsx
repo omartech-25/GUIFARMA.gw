@@ -20,9 +20,22 @@ const Profile: React.FC<ProfileProps> = ({ user, onUpdateUser }) => {
   const [showPasswords, setShowPasswords] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
+  const validateEmail = (email: string) => {
+    return String(email)
+      .toLowerCase()
+      .match(
+        /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
+      );
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setNotification(null);
+
+    if (!formData.email || !validateEmail(formData.email)) {
+      setNotification({ type: 'error', message: 'Por favor, insira um email válido.' });
+      return;
+    }
 
     // Validação básica
     if (formData.newPassword) {

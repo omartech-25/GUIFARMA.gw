@@ -973,6 +973,7 @@ const App: React.FC = () => {
             products={products} 
             sales={sales} 
             clients={clients} 
+            users={users}
           />
         );
       case 'accounting':
