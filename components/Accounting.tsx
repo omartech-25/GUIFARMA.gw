@@ -32,7 +32,7 @@ import {
   Edit,
   Trash2
 } from 'lucide-react';
-import { formatCurrency } from '../constants';
+import { formatCurrency } from '@/constants';
 import { Sale, Purchase, Product, JournalEntry, User, UserRole } from '../types';
 
 interface AccountingProps {

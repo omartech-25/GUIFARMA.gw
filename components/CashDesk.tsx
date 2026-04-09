@@ -16,7 +16,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { CashSession, CashMovement, PaymentMethod, User, UserRole } from '../types';
-import { formatCurrency } from '../constants';
+import { formatCurrency } from '@/constants';
 
 interface CashDeskProps {
   sessions: CashSession[];

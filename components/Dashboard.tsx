@@ -6,7 +6,7 @@ import {
   LineChart, Line, AreaChart, Area 
 } from 'recharts';
 import { Product, Sale, User } from '../types';
-import { formatCurrency } from '../constants';
+import { formatCurrency } from '@/constants';
 
 interface DashboardProps {
   products: Product[];

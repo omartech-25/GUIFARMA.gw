@@ -4,7 +4,7 @@ import { BarChart3, Calendar, AlertTriangle, TrendingUp, MapPin, Download, Dolla
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Product, Sale, Client, MedicineCategory } from '../types';
-import { formatCurrency } from '../constants';
+import { formatCurrency } from '@/constants';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
 
 interface ReportsProps {

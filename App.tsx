@@ -13,7 +13,7 @@ import Login from './components/Login';
 import LogManagement from './components/LogManagement';
 import Profile from './components/Profile';
 import { ViewType, UserRole, Product, Sale, Client, User, Purchase, JournalEntry, CreditNote, SaleStatus, CashSession, CashMovement, PaymentMethod, UserPermissions, ActivityLog, ActivityType } from './types';
-import { MOCK_PRODUCTS, MOCK_SALES, MOCK_USER, MOCK_CLIENTS, DEFAULT_PERMISSIONS, ROLE_PERMISSIONS, formatCurrency } from './constants';
+import { MOCK_PRODUCTS, MOCK_SALES, MOCK_USER, MOCK_CLIENTS, DEFAULT_PERMISSIONS, ROLE_PERMISSIONS, formatCurrency } from '@/constants';
 import { dataService } from './services/dataService';
 
 const App: React.FC = () => {

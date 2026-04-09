@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Search, Plus, X, Shield, CheckCircle2, ChevronRight, Save, Trash2, Check, AlertTriangle, Image as ImageIcon } from 'lucide-react';
 import { User, UserRole, UserPermissions } from '../types';
-import { DEFAULT_PERMISSIONS, ROLE_PERMISSIONS } from '../constants';
+import { DEFAULT_PERMISSIONS, ROLE_PERMISSIONS } from '@/constants';
 
 interface UserManagementProps {
   users: User[];

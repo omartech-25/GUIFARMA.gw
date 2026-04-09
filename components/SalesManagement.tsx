@@ -6,7 +6,7 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { QRCodeSVG } from 'qrcode.react';
 import { Product, Sale, Client, PaymentMethod, SaleItem, Batch, SaleStatus, CreditNote, User, UserRole } from '../types';
-import { formatCurrency } from '../constants';
+import { formatCurrency } from '@/constants';
 
 interface SalesManagementProps {
   products: Product[];

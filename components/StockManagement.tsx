@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Search, Plus, Filter, ChevronRight, Package, Calendar, ShoppingCart, X, CheckCircle2, ThermometerSnowflake, MapPin, Save, Trash2, Image as ImageIcon, Calculator, History, ArrowLeftRight, AlertCircle, AlertTriangle } from 'lucide-react';
 import { Product, Batch, MedicineCategory, PharmaceuticalForm, Sale, Purchase, User, UserRole } from '../types';
-import { formatCurrency } from '../constants';
+import { formatCurrency } from '@/constants';
 
 interface StockManagementProps {
   products: Product[];

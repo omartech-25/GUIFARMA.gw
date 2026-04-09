@@ -4,7 +4,7 @@ import { Search, Plus, ShoppingCart, Trash2, CheckCircle2, ReceiptText, X, Packa
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Product, Purchase, PurchaseItem, Batch, PharmaceuticalForm, User, UserRole } from '../types';
-import { formatCurrency } from '../constants';
+import { formatCurrency } from '@/constants';
 import { QRCodeSVG } from 'qrcode.react';
 
 interface PurchaseManagementProps {
