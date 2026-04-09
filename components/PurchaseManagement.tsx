@@ -216,16 +216,18 @@ const PurchaseManagement: React.FC<PurchaseManagementProps> = ({ products, purch
                     >
                       <Edit size={18} />
                     </button>
-                    <button 
-                      onClick={() => {
-                        setPurchaseToDelete(purchase);
-                        setIsDeleteConfirmOpen(true);
-                      }}
-                      className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                      title="Eliminar Fatura"
-                    >
-                      <Trash2 size={18} />
-                    </button>
+                    {currentUser?.role === UserRole.ADMIN && (
+                      <button 
+                        onClick={() => {
+                          setPurchaseToDelete(purchase);
+                          setIsDeleteConfirmOpen(true);
+                        }}
+                        className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                        title="Eliminar Fatura"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>

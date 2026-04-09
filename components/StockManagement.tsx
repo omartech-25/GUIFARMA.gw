@@ -31,6 +31,7 @@ const StockManagement: React.FC<StockManagementProps> = ({
 }) => {
   const canEdit = currentUser?.permissions?.registerProducts;
   const canEntry = currentUser?.permissions?.stockEntry;
+  const isAdmin = currentUser?.role === UserRole.ADMIN;
 
   const [activeTab, setActiveTab] = useState<StockTab>('inventory');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(products[0] || null);
@@ -414,7 +415,7 @@ const StockManagement: React.FC<StockManagementProps> = ({
                 Salvar
               </button>
             )}
-            {canEdit && (
+            {canEdit && isAdmin && (
               <button 
                 onClick={handleDelete}
                 disabled={!selectedProduct}
@@ -467,7 +468,7 @@ const StockManagement: React.FC<StockManagementProps> = ({
                     <AlertTriangle size={16} className="animate-pulse" />
                     <span className="text-[10px] font-black uppercase">Vencidos/Próx: {products.filter(p => p.batches.some(b => new Date(b.expiryDate) < new Date(Date.now() + 90 * 24 * 60 * 60 * 1000))).length}</span>
                   </div>
-                    {canEdit && (
+                    {canEdit && isAdmin && (
                       <button 
                         onClick={handleRemoveAllExpired}
                         className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all shadow-md"
@@ -582,7 +583,7 @@ const StockManagement: React.FC<StockManagementProps> = ({
                                           <ThermometerSnowflake size={14} />
                                         </div>
                                       )}
-                                      {canEdit && (
+                                      {canEdit && isAdmin && (
                                         <button 
                                           onClick={() => handleRemoveBatch(product.id, batch.id)}
                                           className="p-1 text-slate-300 hover:text-red-500 transition-colors"

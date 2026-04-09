@@ -532,6 +532,10 @@ const App: React.FC = () => {
   };
 
   const handleDeleteSale = async (saleId: string) => {
+    if (currentUser?.role !== UserRole.ADMIN) {
+      setNotification({ type: 'error', message: 'Apenas administradores podem excluir vendas.' });
+      return;
+    }
     const saleToDelete = sales.find(s => s.id === saleId);
     if (!saleToDelete) return;
 
@@ -589,6 +593,10 @@ const App: React.FC = () => {
   };
 
   const handleDeletePurchase = async (purchaseId: string) => {
+    if (currentUser?.role !== UserRole.ADMIN) {
+      setNotification({ type: 'error', message: 'Apenas administradores podem excluir compras.' });
+      return;
+    }
     const purchaseToDelete = purchases.find(p => p.id === purchaseId);
     if (!purchaseToDelete) return;
 
@@ -642,6 +650,10 @@ const App: React.FC = () => {
   };
 
   const handleDeleteUser = async (userId: string) => {
+    if (currentUser?.role !== UserRole.ADMIN) {
+      setNotification({ type: 'error', message: 'Apenas administradores podem excluir usuários.' });
+      return;
+    }
     // Proteger usuários mestres
     const masterUserIds = ['u1', 'u2', 'u3', 'u4'];
     if (masterUserIds.includes(userId)) {
@@ -667,6 +679,10 @@ const App: React.FC = () => {
   };
 
   const handleDeleteProduct = async (productId: string) => {
+    if (currentUser?.role !== UserRole.ADMIN) {
+      setNotification({ type: 'error', message: 'Apenas administradores podem excluir produtos.' });
+      return;
+    }
     const productToDelete = products.find(p => p.id === productId);
     setProducts(prev => prev.filter(p => p.id !== productId));
     
@@ -700,6 +716,10 @@ const App: React.FC = () => {
   };
 
   const handleDeleteJournalEntry = (id: string) => {
+    if (currentUser?.role !== UserRole.ADMIN) {
+      setNotification({ type: 'error', message: 'Apenas administradores podem excluir lançamentos contábeis.' });
+      return;
+    }
     setJournalEntries(prev => prev.filter(e => e.id !== id));
     dataService.deleteJournalEntry(id).catch(console.error);
   };
@@ -792,6 +812,10 @@ const App: React.FC = () => {
   };
 
   const handleClearPurchases = async () => {
+    if (currentUser?.role !== UserRole.ADMIN) {
+      setNotification({ type: 'error', message: 'Apenas administradores podem limpar o histórico.' });
+      return;
+    }
     try {
       setIsSyncing(true);
       await dataService.clearPurchases();
@@ -807,6 +831,10 @@ const App: React.FC = () => {
   };
   
   const handleClearCashHistory = async () => {
+    if (currentUser?.role !== UserRole.ADMIN) {
+      setNotification({ type: 'error', message: 'Apenas administradores podem limpar o histórico.' });
+      return;
+    }
     try {
       setIsSyncing(true);
       await dataService.clearCashMovements();
@@ -925,6 +953,7 @@ const App: React.FC = () => {
         return (
           <ClientManagement 
             clients={clients} 
+            currentUser={currentUser}
             onAddClient={handleAddClient} 
           />
         );
@@ -953,6 +982,7 @@ const App: React.FC = () => {
             purchases={purchases}
             products={products}
             journalEntries={journalEntries}
+            currentUser={currentUser}
             onAddJournalEntry={handleAddJournalEntry}
             onUpdateJournalEntry={handleUpdateJournalEntry}
             onDeleteJournalEntry={handleDeleteJournalEntry}
@@ -976,6 +1006,10 @@ const App: React.FC = () => {
             logs={activityLogs} 
             currentUser={currentUser}
             onClearLogs={async (thresholdDate) => {
+              if (currentUser?.role !== UserRole.ADMIN) {
+                setNotification({ type: 'error', message: 'Apenas administradores podem limpar os logs.' });
+                return;
+              }
               try {
                 setIsSyncing(true);
                 await dataService.clearOldLogs(thresholdDate);

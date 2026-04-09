@@ -33,13 +33,14 @@ import {
   Trash2
 } from 'lucide-react';
 import { formatCurrency } from '../constants';
-import { Sale, Purchase, Product, JournalEntry } from '../types';
+import { Sale, Purchase, Product, JournalEntry, User, UserRole } from '../types';
 
 interface AccountingProps {
   sales: Sale[];
   purchases: Purchase[];
   products: Product[];
   journalEntries: JournalEntry[];
+  currentUser?: User | null;
   onAddJournalEntry: (entry: JournalEntry) => void;
   onUpdateJournalEntry: (entry: JournalEntry) => void;
   onDeleteJournalEntry: (id: string) => void;
@@ -50,6 +51,7 @@ const Accounting: React.FC<AccountingProps> = ({
   purchases = [], 
   products = [], 
   journalEntries = [], 
+  currentUser,
   onAddJournalEntry,
   onUpdateJournalEntry,
   onDeleteJournalEntry
@@ -395,16 +397,18 @@ const Accounting: React.FC<AccountingProps> = ({
                           >
                             <Edit size={16} />
                           </button>
-                          <button 
-                            onClick={() => {
-                              setEntryToDelete(entry);
-                              setIsDeleteConfirmOpen(true);
-                            }}
-                            className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                            title="Eliminar Lançamento"
-                          >
-                            <Trash2 size={16} />
-                          </button>
+                          {currentUser?.role === UserRole.ADMIN && (
+                            <button 
+                              onClick={() => {
+                                setEntryToDelete(entry);
+                                setIsDeleteConfirmOpen(true);
+                              }}
+                              className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                              title="Eliminar Lançamento"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

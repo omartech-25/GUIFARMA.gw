@@ -1,15 +1,16 @@
 
 import React, { useState } from 'react';
 import { Search, Plus, Users, X, Phone, ShieldCheck, MapPin, CheckCircle2, Save, Trash2 } from 'lucide-react';
-import { Client } from '../types';
+import { Client, User, UserRole } from '../types';
 import { formatCurrency } from '../constants';
 
 interface ClientManagementProps {
   clients: Client[];
+  currentUser?: User | null;
   onAddClient: (client: Client) => void;
 }
 
-const ClientManagement: React.FC<ClientManagementProps> = ({ clients, onAddClient }) => {
+const ClientManagement: React.FC<ClientManagementProps> = ({ clients, currentUser, onAddClient }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
@@ -107,12 +108,14 @@ const ClientManagement: React.FC<ClientManagementProps> = ({ clients, onAddClien
             <Save size={16} />
             Salvar
           </button>
-          <button 
-            className="bg-slate-200 text-slate-600 px-6 py-2 rounded-full font-bold text-[10px] uppercase tracking-widest flex items-center gap-2 hover:bg-slate-300 transition-all shadow-md"
-          >
-            <Trash2 size={16} />
-            Excluir
-          </button>
+          {currentUser?.role === UserRole.ADMIN && (
+            <button 
+              className="bg-slate-200 text-slate-600 px-6 py-2 rounded-full font-bold text-[10px] uppercase tracking-widest flex items-center gap-2 hover:bg-slate-300 transition-all shadow-md"
+            >
+              <Trash2 size={16} />
+              Excluir
+            </button>
+          )}
         </div>
       </div>
 

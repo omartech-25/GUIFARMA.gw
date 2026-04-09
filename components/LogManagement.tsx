@@ -105,13 +105,15 @@ const LogManagement: React.FC<LogManagementProps> = ({ logs = [], currentUser, o
             <Download size={18} />
             Exportar CSV
           </button>
-          <button 
-            onClick={() => setIsClearModalOpen(true)}
-            className="flex items-center gap-2 bg-red-50 text-red-600 px-4 py-2 rounded-xl hover:bg-red-100 transition-all text-sm font-bold border border-red-100"
-          >
-            <Trash2 size={18} />
-            Reiniciar Atividades
-          </button>
+          {currentUser?.role === UserRole.ADMIN && (
+            <button 
+              onClick={() => setIsClearModalOpen(true)}
+              className="flex items-center gap-2 bg-red-50 text-red-600 px-4 py-2 rounded-xl hover:bg-red-100 transition-all text-sm font-bold border border-red-100"
+            >
+              <Trash2 size={18} />
+              Reiniciar Atividades
+            </button>
+          )}
         </div>
       </div>
 

@@ -682,17 +682,19 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
                       >
                         <Edit size={18} />
                       </button>
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSaleToDelete(sale);
-                          setIsDeleteConfirmOpen(true);
-                        }}
-                        className="p-2 text-slate-300 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
-                        title="Eliminar Fatura"
-                      >
-                        <Trash2 size={18} />
-                      </button>
+                      {currentUser?.role === UserRole.ADMIN && (
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSaleToDelete(sale);
+                            setIsDeleteConfirmOpen(true);
+                          }}
+                          className="p-2 text-slate-300 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
+                          title="Eliminar Fatura"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      )}
                       <button 
                         onClick={(e) => {
                           e.stopPropagation();
@@ -1570,7 +1572,7 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
                 </button>
               </div>
               <div className="flex gap-4">
-                {viewingSale.status !== SaleStatus.CANCELLED && (
+                {viewingSale.status !== SaleStatus.CANCELLED && currentUser?.role === UserRole.ADMIN && (
                   <button 
                     onClick={() => setIsCreditNoteModalOpen(true)}
                     className="flex items-center gap-3 text-red-600 font-black text-xs uppercase tracking-widest hover:bg-red-50 px-8 py-4 rounded-2xl transition-all"
