@@ -1086,7 +1086,7 @@ const App: React.FC = () => {
         </header>
 
         {notification && (
-          <div className={`fixed top-4 right-4 z-[200] px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-4 animate-slideUp ${
+          <div className={`fixed top-4 right-4 z-[200] px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-4 animate-slideUp print:hidden ${
             notification.type === 'success' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'
           }`}>
             {notification.type === 'success' ? (
