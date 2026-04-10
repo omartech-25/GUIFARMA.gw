@@ -1574,64 +1574,66 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
                   </tbody>
                 </table>
 
-                {/* Payment Type and Footer */}
-                <div className="flex justify-between items-start gap-12">
-                  <div className="w-1/2">
-                    <table className="w-full border-collapse border border-black">
-                      <thead>
-                        <tr className="bg-gray-50">
-                          <th className="border border-black p-2 text-[10px] font-bold text-left uppercase">TIPO DE PAGAMENTO</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {['CAIXA', 'CHEQUE', 'TRANSFERENCIA', 'ORANGE MONEY'].map(type => (
-                          <tr key={type}>
-                            <td className="border border-black p-2 text-[11px] font-bold flex justify-between items-center">
-                              <span className={type === 'CAIXA' && viewingSale.paymentMethod === PaymentMethod.CASH ? 'underline' : ''}>{type}</span>
-                              <div className="w-5 h-5 border-2 border-black flex items-center justify-center">
-                                {(
-                                  (type === 'CAIXA' && viewingSale.paymentMethod === PaymentMethod.CASH) ||
-                                  viewingSale.paymentMethod.toUpperCase() === type || 
-                                  (type === 'TRANSFERENCIA' && viewingSale.paymentMethod.toUpperCase() === 'BANK_TRANSFER')) && (
-                                  <div className="w-3 h-3 bg-black"></div>
-                                )}
-                              </div>
-                            </td>
+                {/* Payment Type and Footer - Wrapped to avoid page breaks */}
+                <div className="invoice-footer">
+                  <div className="flex justify-between items-start gap-12">
+                    <div className="w-1/2">
+                      <table className="w-full border-collapse border border-black">
+                        <thead>
+                          <tr className="bg-gray-50">
+                            <th className="border border-black p-2 text-[10px] font-bold text-left uppercase">TIPO DE PAGAMENTO</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                  <div className="w-1/2 flex flex-col items-end justify-end pt-24">
-                    <div className="text-center w-full">
-                      <div className="relative inline-block">
-                        <div className="border-t-2 border-black px-12 pt-2">
-                          <p className="text-xs font-bold uppercase tracking-widest">Carimbo e Assinatura</p>
+                        </thead>
+                        <tbody>
+                          {['CAIXA', 'CHEQUE', 'TRANSFERENCIA', 'ORANGE MONEY'].map(type => (
+                            <tr key={type}>
+                              <td className="border border-black p-2 text-[11px] font-bold flex justify-between items-center">
+                                <span className={type === 'CAIXA' && viewingSale.paymentMethod === PaymentMethod.CASH ? 'underline' : ''}>{type}</span>
+                                <div className="w-5 h-5 border-2 border-black flex items-center justify-center">
+                                  {(
+                                    (type === 'CAIXA' && viewingSale.paymentMethod === PaymentMethod.CASH) ||
+                                    viewingSale.paymentMethod.toUpperCase() === type || 
+                                    (type === 'TRANSFERENCIA' && viewingSale.paymentMethod.toUpperCase() === 'BANK_TRANSFER')) && (
+                                    <div className="w-3 h-3 bg-black"></div>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div className="w-1/2 flex flex-col items-end justify-end pt-24">
+                      <div className="text-center w-full">
+                        <div className="relative inline-block">
+                          <div className="border-t-2 border-black px-12 pt-2">
+                            <p className="text-xs font-bold uppercase tracking-widest">Carimbo e Assinatura</p>
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                {isGuiaRecolha && (
-                  <div className="mt-8 text-center border-2 border-black p-4">
-                    <p className="text-sm font-black uppercase tracking-widest">ESTE DOCUMENTO NÃO SERVE DE FATURA</p>
-                    <p className="text-[10px] font-bold text-gray-600 mt-1 italic">Documento emitido apenas para fins de recolha/transporte de mercadoria.</p>
-                  </div>
-                )}
+                  {isGuiaRecolha && (
+                    <div className="mt-8 text-center border-2 border-black p-4">
+                      <p className="text-sm font-black uppercase tracking-widest">ESTE DOCUMENTO NÃO SERVE DE FATURA</p>
+                      <p className="text-[10px] font-bold text-gray-600 mt-1 italic">Documento emitido apenas para fins de recolha/transporte de mercadoria.</p>
+                    </div>
+                  )}
 
-                {/* QR Code and Authorization URL */}
-                <div className="mt-12 pt-8 border-t border-gray-100 flex flex-col items-start gap-4 invoice-footer">
-                  <div className="bg-white p-1 border border-gray-200 rounded-lg qr-container">
-                    <QRCodeSVG 
-                      value="https://kontaktu.mef.gw:443/invoice_issuance_authorization/00000049202529" 
-                      size={80}
-                      level="H"
-                    />
+                  {/* QR Code and Authorization URL */}
+                  <div className="mt-12 pt-8 border-t border-gray-100 flex flex-col items-start gap-4">
+                    <div className="bg-white p-1 border border-gray-200 rounded-lg qr-container">
+                      <QRCodeSVG 
+                        value="https://kontaktu.mef.gw:443/invoice_issuance_authorization/00000049202529" 
+                        size={80}
+                        level="H"
+                      />
+                    </div>
+                    <p className="text-[10px] font-mono text-gray-900 break-all">
+                      https://kontaktu.mef.gw:443/invoice_issuance_authorization/00000049202529
+                    </p>
                   </div>
-                  <p className="text-[10px] font-mono text-gray-900 break-all">
-                    https://kontaktu.mef.gw:443/invoice_issuance_authorization/00000049202529
-                  </p>
                 </div>
               </div>
             </div>

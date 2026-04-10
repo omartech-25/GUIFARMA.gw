@@ -155,8 +155,7 @@ body {
     break-inside: avoid !important;
     page-break-inside: avoid !important;
     margin-top: 1rem !important;
-    display: flex !important;
-    flex-direction: column !important;
+    display: block !important;
   }
 
   .qr-container {
