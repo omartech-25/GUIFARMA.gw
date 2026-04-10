@@ -1481,7 +1481,7 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
             className="bg-white w-full max-w-5xl max-h-[95vh] overflow-y-auto rounded-3xl shadow-2xl flex flex-col relative invoice-modal-content"
           >
             {/* Invoice Content (Matches Image) */}
-            <div className="p-12 bg-white text-black font-sans print:p-4">
+            <div className="p-12 bg-white text-black font-sans print:p-4 invoice-wrapper">
               <div ref={invoiceRef} className="max-w-[800px] mx-auto p-8 invoice-print">
                 {/* Header */}
                 <div className="flex justify-between items-start mb-12">
@@ -1620,14 +1620,14 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
 
                 {/* QR Code and Authorization URL */}
                 <div className="mt-12 pt-8 border-t border-gray-100 flex flex-col items-start gap-4 invoice-footer">
-                  <div className="bg-white p-1 border border-gray-200 rounded-lg">
+                  <div className="bg-white p-1 border border-gray-200 rounded-lg qr-container">
                     <QRCodeSVG 
                       value="https://kontaktu.mef.gw:443/invoice_issuance_authorization/00000049202529" 
                       size={80}
                       level="H"
                     />
                   </div>
-                  <p className="text-[10px] font-mono text-gray-500 break-all">
+                  <p className="text-[10px] font-mono text-gray-900 break-all">
                     https://kontaktu.mef.gw:443/invoice_issuance_authorization/00000049202529
                   </p>
                 </div>
