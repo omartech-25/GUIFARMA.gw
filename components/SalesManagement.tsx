@@ -1484,16 +1484,16 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
             <div className="p-12 bg-white text-black font-sans print:p-4 invoice-wrapper">
               <div ref={invoiceRef} className="max-w-[800px] mx-auto p-8 invoice-print">
                 {/* Header */}
-                <div className="flex justify-between items-start mb-12">
+                <div className="flex justify-between items-start mb-12 print:mb-4">
                   <div className="flex flex-col items-center">
-                    <div className="w-24 h-24 border-[6px] border-black rounded-full flex items-center justify-center mb-2 relative">
-                      <div className="w-14 h-5 bg-black absolute"></div>
-                      <div className="w-5 h-14 bg-black absolute"></div>
+                    <div className="w-24 h-24 border-[6px] border-black rounded-full flex items-center justify-center mb-2 relative print:w-16 print:h-16 print:border-4">
+                      <div className="w-14 h-5 bg-black absolute print:w-10 print:h-3"></div>
+                      <div className="w-5 h-14 bg-black absolute print:w-3 print:h-10"></div>
                     </div>
-                    <h1 className="text-2xl font-black tracking-tight leading-none">GUIFARMA</h1>
-                    <p className="text-[11px] font-bold mt-1">Comércio de Produtos Farmacêuticos</p>
+                    <h1 className="text-2xl font-black tracking-tight leading-none print:text-xl">GUIFARMA</h1>
+                    <p className="text-[11px] font-bold mt-1 print:text-[9px]">Comércio de Produtos Farmacêuticos</p>
                   </div>
-                  <div className="text-right text-[13px] space-y-1 font-medium">
+                  <div className="text-right text-[13px] space-y-1 font-medium print:text-[10px] print:space-y-0">
                     <p>Rua Eduardo Mondelane Edifício Mavegro</p>
                     <p>Bissau</p>
                     <p>Contribuinte: 510019285</p>
@@ -1503,16 +1503,16 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
                   </div>
                 </div>
                 
-                <div className="flex justify-center mb-8">
+                <div className="flex justify-center mb-8 print:mb-4">
                   <div className="text-center">
-                    <h2 className="text-xl font-bold uppercase tracking-wider border-b-2 border-black inline-block pb-1">
+                    <h2 className="text-xl font-bold uppercase tracking-wider border-b-2 border-black inline-block pb-1 print:text-lg">
                       {isGuiaRecolha ? 'GUIA DE RECOLHA' : 'SÉRIE A FATURA'} N°{viewingSale.invoiceNumber}
                     </h2>
                   </div>
                 </div>
 
                 {/* Info Table */}
-                <div className="mb-6">
+                <div className="mb-6 print:mb-3">
                   <table className="w-full border-collapse border border-black">
                     <tbody>
                       <tr>
@@ -1532,66 +1532,66 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
                 </div>
 
                 {/* Items Table */}
-                <table className="w-full border-collapse border border-black mb-8">
+                <table className="w-full border-collapse border border-black mb-8 print:mb-4">
                   <thead>
                     <tr className="bg-gray-50">
-                      <th className="border border-black p-2 text-[10px] font-bold uppercase w-[8%]">QTD</th>
-                      <th className="border border-black p-2 text-[10px] font-bold uppercase w-[10%]">REF</th>
-                      <th className="border border-black p-2 text-[10px] font-bold uppercase text-left w-[30%]">PRODUTO</th>
-                      <th className="border border-black p-2 text-[10px] font-bold uppercase w-[10%]">LOTE</th>
-                      <th className="border border-black p-2 text-[10px] font-bold uppercase w-[10%]">VLD</th>
-                      <th className="border border-black p-2 text-[10px] font-bold uppercase text-right w-[12%]">PREÇO</th>
-                      <th className="border border-black p-2 text-[10px] font-bold uppercase text-right w-[12%]">TOTAL</th>
-                      <th className="border border-black p-2 text-[10px] font-bold uppercase w-[8%]">NOTAS</th>
+                      <th className="border border-black p-2 print:p-1 text-[10px] font-bold uppercase w-[8%]">QTD</th>
+                      <th className="border border-black p-2 print:p-1 text-[10px] font-bold uppercase w-[10%]">REF</th>
+                      <th className="border border-black p-2 print:p-1 text-[10px] font-bold uppercase text-left w-[30%]">PRODUTO</th>
+                      <th className="border border-black p-2 print:p-1 text-[10px] font-bold uppercase w-[10%]">LOTE</th>
+                      <th className="border border-black p-2 print:p-1 text-[10px] font-bold uppercase w-[10%]">VLD</th>
+                      <th className="border border-black p-2 print:p-1 text-[10px] font-bold uppercase text-right w-[12%]">PREÇO</th>
+                      <th className="border border-black p-2 print:p-1 text-[10px] font-bold uppercase text-right w-[12%]">TOTAL</th>
+                      <th className="border border-black p-2 print:p-1 text-[10px] font-bold uppercase w-[8%]">NOTAS</th>
                     </tr>
                   </thead>
                   <tbody>
                     {viewingSale.items.map((item, idx) => (
                       <tr key={idx}>
-                        <td className="border border-black p-2 text-center text-[11px] font-bold">{item.quantity}</td>
-                        <td className="border border-black p-2 text-center text-[10px] font-mono">{item.productCode}</td>
-                        <td className="border border-black p-2 text-[11px] font-bold uppercase">{item.productName}</td>
-                        <td className="border border-black p-2 text-center text-[10px] font-mono">{item.batchNumber}</td>
-                        <td className="border border-black p-2 text-center text-[10px] font-bold">{new Date(item.expiryDate).toLocaleDateString('pt', { month: '2-digit', year: 'numeric' })}</td>
-                        <td className="border border-black p-2 text-right text-[11px] font-bold whitespace-nowrap">
+                        <td className="border border-black p-2 print:p-1 text-center text-[11px] font-bold">{item.quantity}</td>
+                        <td className="border border-black p-2 print:p-1 text-center text-[10px] font-mono">{item.productCode}</td>
+                        <td className="border border-black p-2 print:p-1 text-[11px] font-bold uppercase">{item.productName}</td>
+                        <td className="border border-black p-2 print:p-1 text-center text-[10px] font-mono">{item.batchNumber}</td>
+                        <td className="border border-black p-2 print:p-1 text-center text-[10px] font-bold">{new Date(item.expiryDate).toLocaleDateString('pt', { month: '2-digit', year: 'numeric' })}</td>
+                        <td className="border border-black p-2 print:p-1 text-right text-[11px] font-bold whitespace-nowrap">
                           {formatCurrency(item.unitPrice)}
                         </td>
-                        <td className="border border-black p-2 text-right text-[11px] font-bold whitespace-nowrap">
+                        <td className="border border-black p-2 print:p-1 text-right text-[11px] font-bold whitespace-nowrap">
                           {formatCurrency(item.total)}
                         </td>
-                        <td className="border border-black p-2 text-[10px] text-center italic text-gray-400">n.a</td>
+                        <td className="border border-black p-2 print:p-1 text-[10px] text-center italic text-gray-400">n.a</td>
                       </tr>
                     ))}
                     <tr>
-                      <td className="border border-black p-2 font-bold text-sm text-center bg-gray-50" colSpan={6}>TOTAL</td>
-                      <td className="border border-black p-2 font-bold text-sm text-right bg-gray-50 whitespace-nowrap">
+                      <td className="border border-black p-2 print:p-1 font-bold text-sm text-center bg-gray-50" colSpan={6}>TOTAL</td>
+                      <td className="border border-black p-2 print:p-1 font-bold text-sm text-right bg-gray-50 whitespace-nowrap">
                         {formatCurrency(viewingSale.total)}
                       </td>
-                      <td className="border border-black p-2 bg-gray-50"></td>
+                      <td className="border border-black p-2 print:p-1 bg-gray-50"></td>
                     </tr>
                   </tbody>
                 </table>
 
                 {/* Payment Type and Footer */}
-                <div className="flex justify-between items-start gap-12">
+                <div className="flex justify-between items-start gap-12 print:gap-4">
                   <div className="w-1/2">
                     <table className="w-full border-collapse border border-black">
                       <thead>
                         <tr className="bg-gray-50">
-                          <th className="border border-black p-2 text-[10px] font-bold text-left uppercase">TIPO DE PAGAMENTO</th>
+                          <th className="border border-black p-2 print:p-1 text-[10px] font-bold text-left uppercase">TIPO DE PAGAMENTO</th>
                         </tr>
                       </thead>
                       <tbody>
                         {['CAIXA', 'CHEQUE', 'TRANSFERENCIA', 'ORANGE MONEY'].map(type => (
                           <tr key={type}>
-                            <td className="border border-black p-2 text-[11px] font-bold flex justify-between items-center">
+                            <td className="border border-black p-2 print:p-1 text-[11px] font-bold flex justify-between items-center">
                               <span className={type === 'CAIXA' && viewingSale.paymentMethod === PaymentMethod.CASH ? 'underline' : ''}>{type}</span>
-                              <div className="w-5 h-5 border-2 border-black flex items-center justify-center">
+                              <div className="w-5 h-5 print:w-4 print:h-4 border-2 border-black flex items-center justify-center">
                                 {(
                                   (type === 'CAIXA' && viewingSale.paymentMethod === PaymentMethod.CASH) ||
                                   viewingSale.paymentMethod.toUpperCase() === type || 
                                   (type === 'TRANSFERENCIA' && viewingSale.paymentMethod.toUpperCase() === 'BANK_TRANSFER')) && (
-                                  <div className="w-3 h-3 bg-black"></div>
+                                  <div className="w-3 h-3 print:w-2 print:h-2 bg-black"></div>
                                 )}
                               </div>
                             </td>
@@ -1600,7 +1600,7 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
                       </tbody>
                     </table>
                   </div>
-                  <div className="w-1/2 flex flex-col items-end justify-end pt-24">
+                  <div className="w-1/2 flex flex-col items-end justify-end pt-24 print:pt-12">
                     <div className="text-center w-full">
                       <div className="relative inline-block">
                         <div className="border-t-2 border-black px-12 pt-2">
@@ -1619,15 +1619,16 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
                 )}
 
                 {/* QR Code and Authorization URL */}
-                <div className="mt-12 pt-8 border-t border-gray-100 flex flex-col items-start gap-4 invoice-footer">
-                  <div className="bg-white p-1 border border-gray-200 rounded-lg qr-container">
+                <div className="mt-12 pt-8 border-t border-gray-100 flex flex-col items-start gap-4 invoice-footer print:mt-4 print:pt-2">
+                  <div className="bg-white p-1 border border-gray-200 rounded-lg qr-container print:p-0">
                     <QRCodeSVG 
                       value="https://kontaktu.mef.gw:443/invoice_issuance_authorization/00000049202529" 
                       size={80}
                       level="H"
+                      className="print:w-16 print:h-16"
                     />
                   </div>
-                  <p className="text-[10px] font-mono text-gray-900 break-all">
+                  <p className="text-[10px] font-mono text-gray-900 break-all print:text-[8px]">
                     https://kontaktu.mef.gw:443/invoice_issuance_authorization/00000049202529
                   </p>
                 </div>
