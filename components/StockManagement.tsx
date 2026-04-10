@@ -67,6 +67,7 @@ const StockManagement: React.FC<StockManagementProps> = ({
     cost: '',
     price: '',
     unit: 'UN',
+    pharmaceuticalForm: PharmaceuticalForm.TABLET,
     stock: '0',
     category: MedicineCategory.OTHER,
     barcode: '',
@@ -108,7 +109,8 @@ const StockManagement: React.FC<StockManagementProps> = ({
         sanitaryRegistry: selectedProduct.sanitaryRegistry || '',
         cost: (avgCost || 0).toString(),
         price: (selectedProduct.sellingPriceWholesale || 0).toString(),
-        unit: selectedProduct.pharmaceuticalForm || 'UN',
+        unit: 'UN',
+        pharmaceuticalForm: selectedProduct.pharmaceuticalForm || PharmaceuticalForm.TABLET,
         stock: (totalStock || 0).toString(),
         category: selectedProduct.category || MedicineCategory.OTHER,
         barcode: selectedProduct.barcode || '',
@@ -130,6 +132,7 @@ const StockManagement: React.FC<StockManagementProps> = ({
         cost: '',
         price: '',
         unit: 'UN',
+        pharmaceuticalForm: PharmaceuticalForm.TABLET,
         stock: '0',
         category: MedicineCategory.OTHER,
         barcode: '',
@@ -198,6 +201,11 @@ const StockManagement: React.FC<StockManagementProps> = ({
     if (e) e.preventDefault();
     if (!onUpdateProduct && !onAddProduct) return;
 
+    if (!formData.code || !formData.name) {
+      setSuccessToast({ show: true, message: 'Erro: Código e Nome são obrigatórios!' });
+      return;
+    }
+
     const productData: Partial<Product> = {
       code: formData.code,
       name: formData.name,
@@ -207,10 +215,10 @@ const StockManagement: React.FC<StockManagementProps> = ({
       sanitaryRegistry: formData.sanitaryRegistry,
       barcode: formData.barcode,
       category: formData.category,
-      pharmaceuticalForm: formData.unit as PharmaceuticalForm,
-      sellingPriceWholesale: parseFloat(formData.price),
-      minStockAlert: parseInt(formData.minStock),
-      maxStockAlert: parseInt(formData.maxStock),
+      pharmaceuticalForm: formData.pharmaceuticalForm,
+      sellingPriceWholesale: parseFloat(formData.price) || 0,
+      minStockAlert: parseInt(formData.minStock) || 0,
+      maxStockAlert: parseInt(formData.maxStock) || 0,
       imageUrl: formData.imageUrl
     };
 
@@ -293,6 +301,13 @@ const StockManagement: React.FC<StockManagementProps> = ({
       onUpdateProduct?.({ ...selectedProduct, ...productData, batches: updatedBatches, priceHistory: updatedPriceHistory } as Product);
       setSuccessToast({ show: true, message: 'Produto atualizado com sucesso!' });
     } else {
+      // Check for duplicate code
+      const codeExists = products.some(p => p.code.toLowerCase() === formData.code.toLowerCase());
+      if (codeExists) {
+        setSuccessToast({ show: true, message: 'Erro: Já existe um produto com este código!' });
+        return;
+      }
+
       const newProduct: Product = {
         id: `p-${Date.now()}`,
         ...productData,
@@ -371,8 +386,13 @@ const StockManagement: React.FC<StockManagementProps> = ({
     e.preventDefault();
     if (!selectedProduct || !onUpdateProduct) return;
 
-    const quantity = parseInt(purchaseFormData.quantity);
-    const purchasePrice = parseFloat(purchaseFormData.purchasePrice);
+    const quantity = parseInt(purchaseFormData.quantity) || 0;
+    const purchasePrice = parseFloat(purchaseFormData.purchasePrice) || 0;
+
+    if (quantity <= 0) {
+      setSuccessToast({ show: true, message: 'Erro: Quantidade deve ser maior que zero!' });
+      return;
+    }
 
     let updatedPriceHistory = selectedProduct.priceHistory || [];
     
@@ -851,6 +871,28 @@ const StockManagement: React.FC<StockManagementProps> = ({
                     <option value="CX">CAIXA</option>
                     <option value="FR">FRASCO</option>
                   </select>
+                  <label className="md:col-span-2 text-[11px] font-bold text-slate-500 uppercase md:text-right md:pr-4">Forma:</label>
+                  <select 
+                    className="w-full md:col-span-3 px-4 py-2 bg-slate-50 border border-slate-200 rounded-full focus:ring-2 focus:ring-purple-500 outline-none text-sm font-medium appearance-none"
+                    value={formData.pharmaceuticalForm}
+                    disabled={!canEdit}
+                    onChange={e => setFormData({...formData, pharmaceuticalForm: e.target.value as PharmaceuticalForm})}
+                  >
+                    {Object.values(PharmaceuticalForm).map(form => (
+                      <option key={form} value={form}>{form}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex flex-col md:grid md:grid-cols-12 gap-2 md:gap-4 items-start md:items-center">
+                  <label className="md:col-span-3 text-[11px] font-bold text-slate-500 uppercase md:text-right md:pr-4">Categoria:</label>
+                  <select 
+                    className="w-full md:col-span-4 px-4 py-2 bg-slate-50 border border-slate-200 rounded-full focus:ring-2 focus:ring-purple-500 outline-none text-sm font-medium appearance-none"
+                    value={formData.category}
+                    onChange={e => setFormData({...formData, category: e.target.value as MedicineCategory})}
+                  >
+                    {Object.values(MedicineCategory).map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                  </select>
                   <label className="md:col-span-2 text-[11px] font-bold text-slate-500 uppercase md:text-right md:pr-4">Estoque:</label>
                   <input 
                     type="text" 
@@ -859,17 +901,6 @@ const StockManagement: React.FC<StockManagementProps> = ({
                     value={formData.stock}
                     onChange={e => setFormData({...formData, stock: e.target.value})}
                   />
-                </div>
-
-                <div className="flex flex-col md:grid md:grid-cols-12 gap-2 md:gap-4 items-start md:items-center">
-                  <label className="md:col-span-3 text-[11px] font-bold text-slate-500 uppercase md:text-right md:pr-4">Categoria:</label>
-                  <select 
-                    className="w-full md:col-span-9 px-4 py-2 bg-slate-50 border border-slate-200 rounded-full focus:ring-2 focus:ring-purple-500 outline-none text-sm font-medium appearance-none"
-                    value={formData.category}
-                    onChange={e => setFormData({...formData, category: e.target.value as MedicineCategory})}
-                  >
-                    {Object.values(MedicineCategory).map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                  </select>
                 </div>
 
                 <div className="flex flex-col md:grid md:grid-cols-12 gap-2 md:gap-4 items-start md:items-center">

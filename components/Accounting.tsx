@@ -222,8 +222,8 @@ const Accounting: React.FC<AccountingProps> = ({
     return sum + (totalAfterDiscount * (iva / 100));
   }, 0);
   const totalIVA_Paid = purchases.reduce((sum, p) => {
-    // Assuming 18% IVA on purchases for simplicity if not specified
-    return sum + ((p.total || 0) * 0.18); 
+    // Assuming 19% IVA on purchases for simplicity if not specified
+    return sum + ((p.total || 0) * 0.19); 
   }, 0);
 
   const netIVA = totalIVA_Collected - totalIVA_Paid;
@@ -484,7 +484,7 @@ const Accounting: React.FC<AccountingProps> = ({
                 </div>
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-emerald-700/60">Base Tributável (18%):</span>
+                    <span className="text-emerald-700/60">Base Tributável (19%):</span>
                     <span className="font-bold text-emerald-900">{formatCurrency(totalRevenue)}</span>
                   </div>
                   <div className="flex justify-between text-xl font-black text-emerald-900 pt-4 border-t border-emerald-200">
@@ -501,7 +501,7 @@ const Accounting: React.FC<AccountingProps> = ({
                 </div>
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-blue-700/60">Base Tributável (18%):</span>
+                    <span className="text-blue-700/60">Base Tributável (19%):</span>
                     <span className="font-bold text-blue-900">{formatCurrency(totalExpenses)}</span>
                   </div>
                   <div className="flex justify-between text-xl font-black text-blue-900 pt-4 border-t border-blue-200">

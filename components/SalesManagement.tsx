@@ -157,12 +157,27 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
   [clients, selectedClientId]);
 
   const [discount, setDiscount] = useState(0);
-  const [ivaRate, setIvaRate] = useState(18);
+  const [ivaRate, setIvaRate] = useState(19);
   const [receivedAmount, setReceivedAmount] = useState<number | string>('');
   const [showSupervisorUnlock, setShowSupervisorUnlock] = useState(false);
   const [unlockReason, setUnlockReason] = useState<'credit' | 'discount' | 'expiry' | null>(null);
 
   const isSupervisor = currentUser?.role === UserRole.SUPERVISOR || currentUser?.role === UserRole.ADMIN;
+
+  useEffect(() => {
+    if (selectedClientId) {
+      const client = clients.find(c => c.id === selectedClientId);
+      if (client) {
+        if (client.discountTier === 'Gold') {
+          setDiscount(10);
+        } else if (client.discountTier === 'Silver') {
+          setDiscount(5);
+        } else {
+          setDiscount(0);
+        }
+      }
+    }
+  }, [selectedClientId, clients]);
 
   const subtotal = Math.round(cart.reduce((sum, item) => sum + item.total, 0));
   const discountAmount = Math.round(subtotal * (discount / 100));
@@ -1134,13 +1149,37 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
                         Desconto (%)
                         {!isSupervisor && <span className="text-red-500">Bloqueado</span>}
                       </label>
-                      <input 
-                        type="number" 
-                        disabled={!isSupervisor}
-                        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none font-bold disabled:opacity-50 disabled:cursor-not-allowed"
-                        value={discount}
-                        onChange={e => setDiscount(parseFloat(e.target.value) || 0)}
-                      />
+                      <div className="flex flex-col gap-2">
+                        <input 
+                          type="number" 
+                          disabled={!isSupervisor}
+                          className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                          value={discount}
+                          onChange={e => setDiscount(parseFloat(e.target.value) || 0)}
+                        />
+                        {isSupervisor && (
+                          <div className="flex gap-1">
+                            <button 
+                              onClick={() => setDiscount(5)}
+                              className={`flex-1 py-1 px-2 rounded-lg text-[9px] font-black uppercase transition-all ${discount === 5 ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+                            >
+                              5%
+                            </button>
+                            <button 
+                              onClick={() => setDiscount(10)}
+                              className={`flex-1 py-1 px-2 rounded-lg text-[9px] font-black uppercase transition-all ${discount === 10 ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+                            >
+                              10%
+                            </button>
+                            <button 
+                              onClick={() => setDiscount(0)}
+                              className="flex-1 py-1 px-2 rounded-lg text-[9px] font-black uppercase bg-slate-100 text-slate-500 hover:bg-slate-200"
+                            >
+                              0%
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                     <div className="space-y-2">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">IVA (%)</label>
@@ -1149,7 +1188,7 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
                         value={ivaRate}
                         onChange={e => setIvaRate(parseInt(e.target.value))}
                       >
-                        <option value={18}>18% (Padrão)</option>
+                        <option value={19}>19% (Padrão)</option>
                         <option value={0}>Isento</option>
                       </select>
                     </div>

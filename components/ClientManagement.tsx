@@ -24,7 +24,8 @@ const ClientManagement: React.FC<ClientManagementProps> = ({ clients, currentUse
     address: '',
     region: 'Bissau',
     creditLimit: '',
-    paymentTerm: '30'
+    paymentTerm: '30',
+    discountTier: 'Normal' as 'Normal' | 'Silver' | 'Gold'
   });
 
   const filteredClients = clients.filter(c => 
@@ -46,7 +47,8 @@ const ClientManagement: React.FC<ClientManagementProps> = ({ clients, currentUse
       region: formData.region,
       creditLimit: parseFloat(formData.creditLimit) || 0,
       balance: 0,
-      paymentTerm: parseInt(formData.paymentTerm) || 0
+      paymentTerm: parseInt(formData.paymentTerm) || 0,
+      discountTier: formData.discountTier
     };
     onAddClient(newClient);
     setShowSuccess(true);
@@ -63,7 +65,8 @@ const ClientManagement: React.FC<ClientManagementProps> = ({ clients, currentUse
       address: '', 
       region: 'Bissau',
       creditLimit: '', 
-      paymentTerm: '30' 
+      paymentTerm: '30',
+      discountTier: 'Normal'
     });
   };
 
@@ -159,6 +162,13 @@ const ClientManagement: React.FC<ClientManagementProps> = ({ clients, currentUse
                 <td className="px-6 py-4">
                   <p className="font-medium text-slate-800">{formatCurrency(client.creditLimit)}</p>
                   <p className="text-[10px] text-slate-400 uppercase font-black">{client.paymentTerm} dias</p>
+                  {client.discountTier && client.discountTier !== 'Normal' && (
+                    <span className={`mt-1 inline-block px-2 py-0.5 rounded text-[8px] font-black uppercase ${
+                      client.discountTier === 'Gold' ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-600'
+                    }`}>
+                      {client.discountTier} (Tier)
+                    </span>
+                  )}
                 </td>
                 <td className="px-6 py-4 font-bold text-red-500">{formatCurrency(client.balance)}</td>
                 <td className="px-6 py-4">
@@ -311,16 +321,29 @@ const ClientManagement: React.FC<ClientManagementProps> = ({ clients, currentUse
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Prazo Pagamento (Dias)</label>
-                      <input 
-                        required 
-                        type="number" 
-                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none font-bold" 
-                        placeholder="30"
-                        value={formData.paymentTerm}
-                        onChange={e => setFormData({...formData, paymentTerm: e.target.value})}
-                      />
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tier de Desconto</label>
+                      <select 
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none font-bold"
+                        value={formData.discountTier}
+                        onChange={e => setFormData({...formData, discountTier: e.target.value as any})}
+                      >
+                        <option value="Normal">Normal (0%)</option>
+                        <option value="Silver">Silver (5%)</option>
+                        <option value="Gold">Gold (10%)</option>
+                      </select>
                     </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Prazo Pagamento (Dias)</label>
+                    <input 
+                      required 
+                      type="number" 
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none font-bold" 
+                      placeholder="30"
+                      value={formData.paymentTerm}
+                      onChange={e => setFormData({...formData, paymentTerm: e.target.value})}
+                    />
                   </div>
 
                   <div className="pt-6 flex gap-3">

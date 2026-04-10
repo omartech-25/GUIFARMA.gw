@@ -275,7 +275,8 @@ export const MOCK_CLIENTS: Client[] = [
     region: 'Bissau',
     creditLimit: 2000000, 
     balance: 450000,
-    paymentTerm: 30
+    paymentTerm: 30,
+    discountTier: 'Gold'
   },
   { 
     id: 'c3', 
@@ -288,7 +289,8 @@ export const MOCK_CLIENTS: Client[] = [
     region: 'Bissau',
     creditLimit: 1000000, 
     balance: 0,
-    paymentTerm: 45
+    paymentTerm: 45,
+    discountTier: 'Silver'
   },
   { 
     id: 'c4', 
@@ -332,8 +334,8 @@ export const MOCK_SALES: Sale[] = [
     subtotal: 155000,
     discount: 0,
     taxableBase: 155000,
-    iva: 18,
-    total: 182900,
+    iva: 19,
+    total: 184450,
     paymentMethod: PaymentMethod.CASH,
     status: SaleStatus.PAID,
     sellerId: 'u1',
@@ -355,8 +357,8 @@ export const MOCK_SALES: Sale[] = [
     subtotal: 45000,
     discount: 5,
     taxableBase: 42750,
-    iva: 18,
-    total: 50445,
+    iva: 19,
+    total: 50873,
     paymentMethod: PaymentMethod.ORANGE_MONEY,
     status: SaleStatus.PAID,
     sellerId: 'u1',

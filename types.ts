@@ -149,6 +149,7 @@ export interface Client extends AuditInfo {
   creditLimit: number;
   balance: number;
   paymentTerm: number; // in days
+  discountTier?: 'Normal' | 'Silver' | 'Gold';
 }
 
 export interface SaleItem {

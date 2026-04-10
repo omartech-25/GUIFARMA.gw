@@ -368,8 +368,13 @@ const App: React.FC = () => {
       setIsSyncing(true);
       await dataService.saveProduct(productWithAudit);
       logActivity(ActivityType.CREATE, `Novo produto cadastrado: ${newProduct.name}`, `Código: ${newProduct.code}`, newProduct.id, 'Product');
-    } catch (error) {
-      setNotification({ type: 'error', message: 'Erro ao cadastrar novo produto.' });
+    } catch (error: any) {
+      console.error('Erro detalhado ao cadastrar produto:', error);
+      const errorMessage = error?.message || error?.details || 'Erro desconhecido';
+      setNotification({ 
+        type: 'error', 
+        message: `Erro ao cadastrar novo produto: ${errorMessage}` 
+      });
     } finally {
       setIsSyncing(false);
     }
