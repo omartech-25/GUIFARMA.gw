@@ -50,12 +50,12 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setView, user, onLogout,
       {/* Mobile Overlay */}
       {isOpen && (
         <div 
-          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60] lg:hidden"
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60] lg:hidden print:hidden"
           onClick={onClose}
         ></div>
       )}
 
-      <div className={`w-64 h-screen bg-slate-900 text-white fixed left-0 top-0 flex flex-col shadow-xl z-[70] transition-transform duration-300 lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <div className={`w-64 h-screen bg-slate-900 text-white fixed left-0 top-0 flex flex-col shadow-xl z-[70] transition-transform duration-300 lg:translate-x-0 print:hidden ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="p-6 flex items-center justify-between border-b border-slate-800">
           <div className="flex items-center gap-3">
             <div className="bg-emerald-500 p-2 rounded-lg">

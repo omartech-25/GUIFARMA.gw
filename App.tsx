@@ -1058,7 +1058,7 @@ const App: React.FC = () => {
       />
       
       <main className={`flex-1 h-full overflow-y-auto p-4 md:p-8 lg:p-12 transition-all ${isAuthenticated ? 'lg:ml-64' : ''}`}>
-        <header className="mb-8 flex justify-between items-center">
+        <header className="mb-8 flex justify-between items-center print:hidden">
           <div className="flex items-center gap-4">
              {isAuthenticated && (
                <button 
@@ -1103,7 +1103,7 @@ const App: React.FC = () => {
 
         {renderView()}
 
-        <footer className="mt-20 border-t border-slate-200 pt-8 pb-12 flex flex-col md:flex-row justify-between items-center gap-4 text-slate-400 text-sm">
+        <footer className="mt-20 border-t border-slate-200 pt-8 pb-12 flex flex-col md:flex-row justify-between items-center gap-4 text-slate-400 text-sm print:hidden">
           <p>© 2026 GUIFARMA SA. Distribuidora Farmacêutica - Guiné-Bissau.</p>
           <div className="flex gap-6">
             <a href="#" className="hover:text-emerald-600 font-medium">Normas OHADA</a>
