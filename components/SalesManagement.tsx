@@ -356,8 +356,8 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
     
     const newSale: Sale = {
       id: `s-${Date.now()}`,
-      invoiceNumber: manualInvoiceNumber && manualInvoiceYear 
-        ? `GF-${manualInvoiceNumber.padStart(4, '0')}-${manualInvoiceYear}`
+      invoiceNumber: manualInvoiceNumber 
+        ? `GF-${manualInvoiceNumber.padStart(4, '0')}-${manualInvoiceYear || now.getFullYear()}`
         : `GF-${(sales.length + 100).toString().padStart(4, '0')}-${now.getFullYear()}`,
       date: now.toISOString(),
       dueDate: dueDate.toISOString(),
@@ -1844,6 +1844,15 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
             </div>
             
             <div className="grid grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nº Fatura</label>
+                <input 
+                  type="text" 
+                  className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none font-bold"
+                  value={editingSale.invoiceNumber}
+                  onChange={e => setEditingSale({ ...editingSale, invoiceNumber: e.target.value })}
+                />
+              </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Cliente</label>
                 <select 
