@@ -80,7 +80,7 @@ body {
 
 @media print {
   @page {
-    margin: 5mm;
+    margin: 20mm 10mm 10mm 10mm;
     size: auto;
   }
   
