@@ -116,16 +116,24 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
 
   // Stats calculations
   const stats = useMemo(() => {
-    const total = sales.reduce((sum, s) => sum + s.total, 0);
+    const userSales = currentUser?.role === UserRole.ADMIN 
+      ? sales 
+      : sales.filter(s => s.sellerId === currentUser?.id);
+
+    const total = userSales.reduce((sum, s) => sum + s.total, 0);
     const today = new Date().toISOString().split('T')[0];
-    const salesToday = sales.filter(s => s.date.startsWith(today));
+    const salesToday = userSales.filter(s => s.date.startsWith(today));
     const totalToday = salesToday.reduce((sum, s) => sum + s.total, 0);
-    const avgTicket = sales.length > 0 ? total / sales.length : 0;
+    const avgTicket = userSales.length > 0 ? total / userSales.length : 0;
 
     return { total, totalToday, salesTodayCount: salesToday.length, avgTicket };
-  }, [sales]);
+  }, [sales, currentUser]);
 
   const chartData = useMemo(() => {
+    const userSales = currentUser?.role === UserRole.ADMIN 
+      ? sales 
+      : sales.filter(s => s.sellerId === currentUser?.id);
+
     const last7Days = Array.from({ length: 7 }).map((_, i) => {
       const d = new Date();
       d.setDate(d.getDate() - (6 - i));
@@ -133,16 +141,21 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
     });
 
     return last7Days.map(date => {
-      const daySales = sales.filter(s => s.date.startsWith(date));
+      const daySales = userSales.filter(s => s.date.startsWith(date));
       return {
         date: new Date(date).toLocaleDateString('pt', { weekday: 'short' }),
         total: daySales.reduce((sum, s) => sum + s.total, 0)
       };
     });
-  }, [sales]);
+  }, [sales, currentUser]);
 
   const filteredSales = useMemo(() => {
-    return sales.filter(s => 
+    // Security: Non-admins only see their own sales
+    const baseSales = currentUser?.role === UserRole.ADMIN 
+      ? sales 
+      : sales.filter(s => s.sellerId === currentUser?.id);
+
+    return baseSales.filter(s => 
       s.invoiceNumber.toLowerCase().includes(listSearchTerm.toLowerCase()) ||
       s.clientName.toLowerCase().includes(listSearchTerm.toLowerCase()) ||
       s.items.some(item => 
@@ -150,7 +163,7 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
         item.batchNumber.toLowerCase().includes(listSearchTerm.toLowerCase())
       )
     );
-  }, [sales, listSearchTerm]);
+  }, [sales, listSearchTerm, currentUser]);
 
   const selectedClient = useMemo(() => 
     clients.find(c => c.id === selectedClientId),
