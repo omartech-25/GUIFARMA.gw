@@ -285,4 +285,11 @@ export interface ActivityLog {
   ipAddress?: string;
 }
 
+export interface CostCenter extends AuditInfo {
+  id: string;
+  name: string;
+  code: string;
+  budget: number;
+}
+
 export type ViewType = 'dashboard' | 'stock' | 'sales' | 'clients' | 'reports' | 'users' | 'purchases' | 'accounting' | 'cash' | 'logs' | 'profile';

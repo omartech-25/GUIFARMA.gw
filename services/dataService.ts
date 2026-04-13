@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { Product, Sale, Client, User, Purchase, JournalEntry, CreditNote, CashSession, CashMovement, ActivityLog } from '../types';
+import { Product, Sale, Client, User, Purchase, JournalEntry, CreditNote, CashSession, CashMovement, ActivityLog, CostCenter } from '../types';
 
 // Helper to map camelCase to snake_case
 const toSnakeCase = (obj: any) => {
@@ -205,6 +205,25 @@ export const dataService = {
 
   async clearJournalEntries() {
     const { error } = await supabase.from('journal_entries').delete().neq('id', '0');
+    if (error) throw error;
+  },
+  // Cost Centers
+  async getCostCenters(): Promise<CostCenter[]> {
+    const { data, error } = await supabase.from('cost_centers').select('*');
+    if (error) throw error;
+    return data.map(c => fromSnakeCase(c)) as CostCenter[];
+  },
+  async saveCostCenter(cc: CostCenter) {
+    const ccData = toSnakeCase(cc);
+    const { error } = await supabase.from('cost_centers').upsert(ccData);
+    if (error) throw error;
+  },
+  async deleteCostCenter(id: string) {
+    const { error } = await supabase.from('cost_centers').delete().eq('id', id);
+    if (error) throw error;
+  },
+  async clearCostCenters() {
+    const { error } = await supabase.from('cost_centers').delete().neq('id', '0');
     if (error) throw error;
   },
   // Activity Logs

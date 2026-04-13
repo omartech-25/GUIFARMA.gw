@@ -33,18 +33,23 @@ import {
   Trash2
 } from 'lucide-react';
 import { formatCurrency } from '@/constants';
-import { Sale, Purchase, Product, JournalEntry, User, UserRole } from '../types';
+import { Sale, Purchase, Product, JournalEntry, User, UserRole, CostCenter } from '../types';
 
 interface AccountingProps {
   sales: Sale[];
   purchases: Purchase[];
   products: Product[];
   journalEntries: JournalEntry[];
+  costCenters: CostCenter[];
   currentUser?: User | null;
   onAddJournalEntry: (entry: JournalEntry) => void;
   onUpdateJournalEntry: (entry: JournalEntry) => void;
   onDeleteJournalEntry: (id: string) => void;
   onClearJournalEntries?: () => void;
+  onAddCostCenter: (cc: CostCenter) => void;
+  onUpdateCostCenter: (cc: CostCenter) => void;
+  onDeleteCostCenter: (id: string) => void;
+  onClearCostCenters: () => void;
 }
 
 const Accounting: React.FC<AccountingProps> = ({ 
@@ -52,16 +57,24 @@ const Accounting: React.FC<AccountingProps> = ({
   purchases = [], 
   products = [], 
   journalEntries = [], 
+  costCenters = [],
   currentUser,
   onAddJournalEntry,
   onUpdateJournalEntry,
   onDeleteJournalEntry,
-  onClearJournalEntries
+  onClearJournalEntries,
+  onAddCostCenter,
+  onUpdateCostCenter,
+  onDeleteCostCenter,
+  onClearCostCenters
 }) => {
   const [activeTab, setActiveTab] = useState<'journal' | 'chart' | 'tax' | 'balance' | 'cost_center' | 'regulatory' | 'expenses'>('journal');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false);
+  const [isCCModalOpen, setIsCCModalOpen] = useState(false);
+  const [isCCClearConfirmOpen, setIsCCClearConfirmOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null);
+  const [editingCC, setEditingCC] = useState<CostCenter | null>(null);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [entryToDelete, setEntryToDelete] = useState<JournalEntry | null>(null);
   const [journalFilter, setJournalFilter] = useState<string>('Todos os Diários');
@@ -527,38 +540,89 @@ const Accounting: React.FC<AccountingProps> = ({
         )}
 
         {activeTab === 'cost_center' && (
-          <div className="p-8 animate-fadeIn space-y-6">
-            <h3 className="font-bold text-slate-800">Centros de Custo</h3>
+          <div className="p-8 animate-fadeIn space-y-8">
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="font-bold text-slate-800">Centros de Custo</h3>
+                <p className="text-xs text-slate-400">Distribuição orçamental por departamento.</p>
+              </div>
+              <div className="flex gap-3">
+                {currentUser?.role === UserRole.ADMIN && (
+                  <button 
+                    onClick={() => setIsCCClearConfirmOpen(true)}
+                    className="flex items-center gap-2 bg-red-50 text-red-600 border border-red-100 px-4 py-2 rounded-xl hover:bg-red-100 transition-all text-sm font-bold shadow-sm"
+                  >
+                    <Trash2 size={18} />
+                    Limpar Todos
+                  </button>
+                )}
+                <button 
+                  onClick={() => {
+                    setEditingCC(null);
+                    setIsCCModalOpen(true);
+                  }}
+                  className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-xl hover:bg-slate-800 transition-all text-sm font-bold shadow-sm"
+                >
+                  <Plus size={18} />
+                  Novo Centro de Custo
+                </button>
+              </div>
+            </div>
+            
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {[
-                { name: 'Armazém Central', code: 'CC-001', budget: 5000000, actual: totalExpenses * 0.7 },
-                { name: 'Logística / Entregas', code: 'CC-002', budget: 1000000, actual: totalExpenses * 0.2 },
-                { name: 'Administrativo', code: 'CC-003', budget: 500000, actual: totalExpenses * 0.1 },
-              ].map(cc => (
-                <div key={cc.code} className="bg-slate-50 p-6 rounded-3xl border border-slate-100 space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{cc.code}</span>
-                    <Target size={16} className="text-slate-300" />
+              {costCenters.map(cc => {
+                const actual = purchases.reduce((sum, p) => sum + p.total, 0) * (cc.code === 'CC-001' ? 0.7 : cc.code === 'CC-002' ? 0.2 : 0.1); // Placeholder logic
+                const percentage = Math.min((actual / cc.budget) * 100, 100);
+                
+                return (
+                  <div key={cc.id} className="bg-white border border-slate-100 p-6 rounded-3xl shadow-sm hover:shadow-md transition-all relative group">
+                    <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button 
+                        onClick={() => {
+                          setEditingCC(cc);
+                          setIsCCModalOpen(true);
+                        }}
+                        className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
+                      >
+                        <Edit size={14} />
+                      </button>
+                      <button 
+                        onClick={() => onDeleteCostCenter(cc.id)}
+                        className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                    
+                    <div className="flex justify-between items-start mb-4">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{cc.code}</span>
+                      <Target className="text-slate-200" size={20} />
+                    </div>
+                    <h4 className="text-lg font-black text-slate-800 mb-6">{cc.name}</h4>
+                    <div className="space-y-4">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-slate-400 font-bold uppercase">Orçamento:</span>
+                        <span className="text-slate-900 font-black">{formatCurrency(cc.budget)}</span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-slate-400 font-bold uppercase">Realizado:</span>
+                        <span className="text-slate-900 font-black">{formatCurrency(actual)}</span>
+                      </div>
+                      <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                        <div 
+                          className={`h-full transition-all duration-1000 ${percentage > 90 ? 'bg-red-500' : percentage > 70 ? 'bg-amber-500' : 'bg-emerald-500'}`}
+                          style={{ width: `${percentage}%` }}
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <h4 className="font-bold text-slate-800">{cc.name}</h4>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-xs">
-                      <span className="text-slate-500">Orçamento:</span>
-                      <span className="font-bold">{formatCurrency(cc.budget)}</span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-slate-500">Realizado:</span>
-                      <span className="font-bold">{formatCurrency(cc.actual)}</span>
-                    </div>
-                    <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
-                      <div 
-                        className={`h-full rounded-full ${cc.actual > cc.budget ? 'bg-red-500' : 'bg-emerald-500'}`}
-                        style={{ width: `${Math.min((cc.actual / cc.budget) * 100, 100)}%` }}
-                      ></div>
-                    </div>
-                  </div>
+                );
+              })}
+              {costCenters.length === 0 && (
+                <div className="col-span-3 py-12 text-center text-slate-400 italic bg-slate-50 rounded-3xl border border-dashed border-slate-200">
+                  Nenhum centro de custo cadastrado.
                 </div>
-              ))}
+              )}
             </div>
           </div>
         )}
@@ -1072,6 +1136,108 @@ const Accounting: React.FC<AccountingProps> = ({
                   onClick={() => {
                     onClearJournalEntries?.();
                     setIsClearConfirmOpen(false);
+                  }}
+                  className="flex-1 py-4 font-bold text-white bg-red-600 hover:bg-red-700 rounded-2xl transition-all shadow-xl shadow-red-200"
+                >
+                  Confirmar Limpeza
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cost Center Modal */}
+      {isCCModalOpen && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fadeIn">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-slideUp">
+            <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+              <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">
+                {editingCC ? 'Editar Centro de Custo' : 'Novo Centro de Custo'}
+              </h3>
+              <button onClick={() => setIsCCModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                <Plus className="rotate-45" size={24} />
+              </button>
+            </div>
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              const formData = new FormData(e.currentTarget);
+              const cc: CostCenter = {
+                id: editingCC?.id || `cc-${Date.now()}`,
+                name: formData.get('name') as string,
+                code: formData.get('code') as string,
+                budget: Number(formData.get('budget')),
+              };
+              if (editingCC) onUpdateCostCenter(cc);
+              else onAddCostCenter(cc);
+              setIsCCModalOpen(false);
+            }} className="p-8 space-y-6">
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Código</label>
+                  <input 
+                    name="code"
+                    defaultValue={editingCC?.code}
+                    required
+                    placeholder="Ex: CC-001"
+                    className="w-full bg-slate-50 border-none rounded-2xl px-5 py-4 text-slate-900 font-bold focus:ring-2 focus:ring-slate-900 transition-all"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Orçamento (FCFA)</label>
+                  <input 
+                    name="budget"
+                    type="number"
+                    defaultValue={editingCC?.budget}
+                    required
+                    placeholder="0"
+                    className="w-full bg-slate-50 border-none rounded-2xl px-5 py-4 text-slate-900 font-bold focus:ring-2 focus:ring-slate-900 transition-all"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Nome do Departamento</label>
+                <input 
+                  name="name"
+                  defaultValue={editingCC?.name}
+                  required
+                  placeholder="Ex: Logística"
+                  className="w-full bg-slate-50 border-none rounded-2xl px-5 py-4 text-slate-900 font-bold focus:ring-2 focus:ring-slate-900 transition-all"
+                />
+              </div>
+              <button type="submit" className="w-full py-5 bg-slate-900 text-white rounded-2xl font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl shadow-slate-200">
+                {editingCC ? 'Salvar Alterações' : 'Criar Centro de Custo'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* CC Clear Confirmation Modal */}
+      {isCCClearConfirmOpen && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fadeIn">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-slideUp">
+            <div className="p-8 text-center space-y-6">
+              <div className="bg-red-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto text-red-600">
+                <AlertTriangle size={40} />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-xl font-black text-slate-900 uppercase">Limpar Centros de Custo</h3>
+                <p className="text-slate-500">
+                  Tem certeza que deseja remover <span className="font-bold text-red-600">TODOS</span> os centros de custo?
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setIsCCClearConfirmOpen(false)}
+                  className="flex-1 py-4 font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-2xl transition-all"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  onClick={() => {
+                    onClearCostCenters?.('all');
+                    setIsCCClearConfirmOpen(false);
                   }}
                   className="flex-1 py-4 font-bold text-white bg-red-600 hover:bg-red-700 rounded-2xl transition-all shadow-xl shadow-red-200"
                 >

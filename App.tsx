@@ -12,7 +12,7 @@ import CashDesk from './components/CashDesk';
 import Login from './components/Login';
 import LogManagement from './components/LogManagement';
 import Profile from './components/Profile';
-import { ViewType, UserRole, Product, Sale, Client, User, Purchase, JournalEntry, CreditNote, SaleStatus, CashSession, CashMovement, PaymentMethod, UserPermissions, ActivityLog, ActivityType } from './types';
+import { ViewType, UserRole, Product, Sale, Client, User, Purchase, JournalEntry, CreditNote, SaleStatus, CashSession, CashMovement, PaymentMethod, UserPermissions, ActivityLog, ActivityType, CostCenter } from './types';
 import { MOCK_PRODUCTS, MOCK_SALES, MOCK_USER, MOCK_CLIENTS, DEFAULT_PERMISSIONS, ROLE_PERMISSIONS, formatCurrency } from '@/constants';
 import { dataService } from './services/dataService';
 
@@ -30,6 +30,7 @@ const App: React.FC = () => {
   const [clients, setClients] = useState<Client[]>(MOCK_CLIENTS);
   const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
   const [creditNotes, setCreditNotes] = useState<CreditNote[]>([]);
+  const [costCenters, setCostCenters] = useState<CostCenter[]>([]);
   const [cashSessions, setCashSessions] = useState<CashSession[]>([]);
   const [cashMovements, setCashMovements] = useState<CashMovement[]>([]);
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
@@ -71,6 +72,7 @@ const App: React.FC = () => {
           dbPurchases,
           dbJournalEntries,
           dbCreditNotes,
+          dbCostCenters,
           dbCashSessions,
           dbCashMovements,
           dbActivityLogs
@@ -82,6 +84,7 @@ const App: React.FC = () => {
           dataService.getPurchases().catch(() => []),
           dataService.getJournalEntries().catch(() => []),
           dataService.getCreditNotes().catch(() => []),
+          dataService.getCostCenters().catch(() => []),
           dataService.getCashSessions().catch(() => []),
           dataService.getCashMovements().catch(() => []),
           dataService.getActivityLogs().catch(() => [])
@@ -115,6 +118,11 @@ const App: React.FC = () => {
         setPurchases(dbPurchases.length > 0 ? dbPurchases : []);
         setJournalEntries(dbJournalEntries.length > 0 ? dbJournalEntries : []);
         setCreditNotes(dbCreditNotes.length > 0 ? dbCreditNotes : []);
+        setCostCenters(dbCostCenters.length > 0 ? dbCostCenters : [
+          { id: 'cc1', name: 'Armazém Central', code: 'CC-001', budget: 5000000, createdBy: 'Sistema', createdAt: new Date().toISOString() },
+          { id: 'cc2', name: 'Logística / Entregas', code: 'CC-002', budget: 1000000, createdBy: 'Sistema', createdAt: new Date().toISOString() },
+          { id: 'cc3', name: 'Administrativo', code: 'CC-003', budget: 500000, createdBy: 'Sistema', createdAt: new Date().toISOString() }
+        ]);
         setCashSessions(dbCashSessions.length > 0 ? dbCashSessions : []);
         setCashMovements(dbCashMovements.length > 0 ? dbCashMovements : []);
         setActivityLogs(dbActivityLogs.length > 0 ? dbActivityLogs : []);
@@ -788,6 +796,74 @@ const App: React.FC = () => {
     }
   };
 
+  const handleAddCostCenter = async (cc: CostCenter) => {
+    const ccWithAudit = {
+      ...cc,
+      createdBy: currentUser?.name || 'Sistema',
+      createdAt: new Date().toISOString()
+    };
+    setCostCenters(prev => [...prev, ccWithAudit]);
+    try {
+      setIsSyncing(true);
+      await dataService.saveCostCenter(ccWithAudit);
+    } catch (error) {
+      setNotification({ type: 'error', message: 'Erro ao salvar centro de custo.' });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleUpdateCostCenter = async (cc: CostCenter) => {
+    const ccWithAudit = {
+      ...cc,
+      updatedBy: currentUser?.name || 'Sistema',
+      updatedAt: new Date().toISOString()
+    };
+    setCostCenters(prev => prev.map(item => item.id === cc.id ? ccWithAudit : item));
+    try {
+      setIsSyncing(true);
+      await dataService.saveCostCenter(ccWithAudit);
+    } catch (error) {
+      setNotification({ type: 'error', message: 'Erro ao atualizar centro de custo.' });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleDeleteCostCenter = async (id: string) => {
+    if (currentUser?.role !== UserRole.ADMIN) {
+      setNotification({ type: 'error', message: 'Apenas administradores podem excluir centros de custo.' });
+      return;
+    }
+    setCostCenters(prev => prev.filter(cc => cc.id !== id));
+    try {
+      setIsSyncing(true);
+      await dataService.deleteCostCenter(id);
+      setNotification({ type: 'success', message: 'Centro de custo removido.' });
+    } catch (error) {
+      setNotification({ type: 'error', message: 'Erro ao excluir centro de custo.' });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleClearCostCenters = async () => {
+    if (currentUser?.role !== UserRole.ADMIN) {
+      setNotification({ type: 'error', message: 'Apenas administradores podem limpar centros de custo.' });
+      return;
+    }
+    try {
+      setIsSyncing(true);
+      await dataService.clearCostCenters();
+      setCostCenters([]);
+      setNotification({ type: 'success', message: 'Centros de custo limpos.' });
+    } catch (error) {
+      setNotification({ type: 'error', message: 'Erro ao limpar centros de custo.' });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   const handleOpenCashSession = (openingBalance: number) => {
     const newSession: CashSession = {
       id: `cs-${Date.now()}`,
@@ -1049,11 +1125,16 @@ const App: React.FC = () => {
             purchases={purchases}
             products={products}
             journalEntries={journalEntries}
+            costCenters={costCenters}
             currentUser={currentUser}
             onAddJournalEntry={handleAddJournalEntry}
             onUpdateJournalEntry={handleUpdateJournalEntry}
             onDeleteJournalEntry={handleDeleteJournalEntry}
             onClearJournalEntries={handleClearJournalEntries}
+            onAddCostCenter={handleAddCostCenter}
+            onUpdateCostCenter={handleUpdateCostCenter}
+            onDeleteCostCenter={handleDeleteCostCenter}
+            onClearCostCenters={handleClearCostCenters}
           />
         );
       case 'cash':
