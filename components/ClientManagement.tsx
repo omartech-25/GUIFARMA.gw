@@ -8,10 +8,21 @@ interface ClientManagementProps {
   clients: Client[];
   currentUser?: User | null;
   onAddClient: (client: Client) => void;
+  onUpdateClient: (client: Client) => void;
+  onDeleteClient: (clientId: string) => void;
 }
 
-const ClientManagement: React.FC<ClientManagementProps> = ({ clients, currentUser, onAddClient }) => {
+const ClientManagement: React.FC<ClientManagementProps> = ({ 
+  clients, 
+  currentUser, 
+  onAddClient,
+  onUpdateClient,
+  onDeleteClient
+}) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
 
@@ -36,26 +47,47 @@ const ClientManagement: React.FC<ClientManagementProps> = ({ clients, currentUse
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const newClient: Client = {
-      id: `c-${Date.now()}`,
-      name: formData.name,
-      nif: formData.nif,
-      technicalResponsible: formData.technicalResponsible,
-      type: formData.type,
-      contact: formData.contact,
-      address: formData.address,
-      region: formData.region,
-      creditLimit: parseFloat(formData.creditLimit) || 0,
-      balance: 0,
-      paymentTerm: parseInt(formData.paymentTerm) || 0,
-      discountTier: formData.discountTier
-    };
-    onAddClient(newClient);
+    
+    if (selectedClient) {
+      const updatedClient: Client = {
+        ...selectedClient,
+        name: formData.name,
+        nif: formData.nif,
+        technicalResponsible: formData.technicalResponsible,
+        type: formData.type,
+        contact: formData.contact,
+        address: formData.address,
+        region: formData.region,
+        creditLimit: parseFloat(formData.creditLimit) || 0,
+        paymentTerm: parseInt(formData.paymentTerm) || 0,
+        discountTier: formData.discountTier
+      };
+      onUpdateClient(updatedClient);
+    } else {
+      const newClient: Client = {
+        id: `c-${Date.now()}`,
+        name: formData.name,
+        nif: formData.nif,
+        technicalResponsible: formData.technicalResponsible,
+        type: formData.type,
+        contact: formData.contact,
+        address: formData.address,
+        region: formData.region,
+        creditLimit: parseFloat(formData.creditLimit) || 0,
+        balance: 0,
+        paymentTerm: parseInt(formData.paymentTerm) || 0,
+        discountTier: formData.discountTier
+      };
+      onAddClient(newClient);
+    }
+
     setShowSuccess(true);
     setTimeout(() => {
       setShowSuccess(false);
       setIsModalOpen(false);
+      setSelectedClient(null);
     }, 2000);
+    
     setFormData({ 
       name: '', 
       nif: '', 
@@ -70,6 +102,36 @@ const ClientManagement: React.FC<ClientManagementProps> = ({ clients, currentUse
     });
   };
 
+  const handleEdit = (client: Client) => {
+    setSelectedClient(client);
+    setFormData({
+      name: client.name,
+      nif: client.nif,
+      technicalResponsible: client.technicalResponsible,
+      type: client.type,
+      contact: client.contact,
+      address: client.address,
+      region: client.region,
+      creditLimit: client.creditLimit.toString(),
+      paymentTerm: client.paymentTerm.toString(),
+      discountTier: client.discountTier || 'Normal'
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleDeleteClick = (client: Client) => {
+    setClientToDelete(client);
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (clientToDelete) {
+      onDeleteClient(clientToDelete.id);
+      setIsDeleteModalOpen(false);
+      setClientToDelete(null);
+    }
+  };
+
   return (
     <div className="space-y-0 animate-fadeIn max-w-6xl mx-auto">
       <div className="bg-[#10B981] text-white py-2 px-6 rounded-t-xl flex justify-between items-center shadow-lg">
@@ -79,17 +141,26 @@ const ClientManagement: React.FC<ClientManagementProps> = ({ clients, currentUse
       <div className="bg-white border-x border-slate-200 p-4 flex flex-wrap gap-4 items-center shadow-sm">
         <div className="flex gap-2">
           <button 
-            onClick={() => setIsModalOpen(true)}
+            onClick={() => {
+              setSelectedClient(null);
+              setFormData({ 
+                name: '', 
+                nif: '', 
+                technicalResponsible: '', 
+                type: 'Farmácia', 
+                contact: '', 
+                address: '', 
+                region: 'Bissau',
+                creditLimit: '', 
+                paymentTerm: '30',
+                discountTier: 'Normal'
+              });
+              setIsModalOpen(true);
+            }}
             className="bg-amber-500 text-white px-6 py-2 rounded-full font-bold text-[10px] uppercase tracking-widest flex items-center gap-2 hover:bg-amber-600 transition-all shadow-md"
           >
             <Plus size={16} />
             Novo
-          </button>
-          <button 
-            className="bg-amber-500 text-white px-6 py-2 rounded-full font-bold text-[10px] uppercase tracking-widest flex items-center gap-2 hover:bg-amber-600 transition-all shadow-md"
-          >
-            <Search size={16} />
-            Localizar
           </button>
         </div>
         
@@ -102,23 +173,6 @@ const ClientManagement: React.FC<ClientManagementProps> = ({ clients, currentUse
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
-        </div>
-        
-        <div className="flex gap-2">
-          <button 
-            className="bg-amber-500 text-white px-6 py-2 rounded-full font-bold text-[10px] uppercase tracking-widest flex items-center gap-2 hover:bg-amber-600 transition-all shadow-md"
-          >
-            <Save size={16} />
-            Salvar
-          </button>
-          {currentUser?.role === UserRole.ADMIN && (
-            <button 
-              className="bg-slate-200 text-slate-600 px-6 py-2 rounded-full font-bold text-[10px] uppercase tracking-widest flex items-center gap-2 hover:bg-slate-300 transition-all shadow-md"
-            >
-              <Trash2 size={16} />
-              Excluir
-            </button>
-          )}
         </div>
       </div>
 
@@ -133,6 +187,7 @@ const ClientManagement: React.FC<ClientManagementProps> = ({ clients, currentUse
               <th className="px-6 py-4">Limite / Prazo</th>
               <th className="px-6 py-4">Dívida Atual</th>
               <th className="px-6 py-4">Status</th>
+              <th className="px-6 py-4 text-right">Ações</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -177,6 +232,26 @@ const ClientManagement: React.FC<ClientManagementProps> = ({ clients, currentUse
                     <span className="text-[10px] font-bold">ATIVO</span>
                   </div>
                 </td>
+                <td className="px-6 py-4 text-right">
+                  <div className="flex justify-end gap-2">
+                    <button 
+                      onClick={() => handleEdit(client)}
+                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                      title="Editar"
+                    >
+                      <Save size={16} />
+                    </button>
+                    {currentUser?.role === UserRole.ADMIN && (
+                      <button 
+                        onClick={() => handleDeleteClick(client)}
+                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                        title="Eliminar"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
+                  </div>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -205,9 +280,9 @@ const ClientManagement: React.FC<ClientManagementProps> = ({ clients, currentUse
                     <div className="bg-emerald-500 p-2 rounded-xl">
                       <Users size={20} />
                     </div>
-                    <h3 className="text-lg font-bold">Novo Cadastro de Cliente</h3>
+                    <h3 className="text-lg font-bold">{selectedClient ? 'Editar Cliente' : 'Novo Cadastro de Cliente'}</h3>
                   </div>
-                  <button onClick={() => setIsModalOpen(false)} className="hover:bg-slate-800 p-2 rounded-full text-slate-400 hover:text-white">
+                  <button onClick={() => { setIsModalOpen(false); setSelectedClient(null); }} className="hover:bg-slate-800 p-2 rounded-full text-slate-400 hover:text-white">
                     <X size={20} />
                   </button>
                 </div>
@@ -358,12 +433,46 @@ const ClientManagement: React.FC<ClientManagementProps> = ({ clients, currentUse
                       type="submit" 
                       className="flex-1 py-4 font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-2xl transition-all shadow-xl shadow-emerald-200"
                     >
-                      Salvar Cliente
+                      {selectedClient ? 'Atualizar Cliente' : 'Salvar Cliente'}
                     </button>
                   </div>
                 </form>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Confirmação de Exclusão */}
+      {isDeleteModalOpen && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fadeIn">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-slideUp">
+            <div className="p-8 text-center space-y-6">
+              <div className="bg-red-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto text-red-600">
+                <Trash2 size={40} />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-xl font-black text-slate-900 uppercase">Confirmar Exclusão</h3>
+                <p className="text-slate-500">
+                  Tem certeza que deseja excluir o cliente <span className="font-bold text-slate-900">{clientToDelete?.name}</span>? 
+                  Esta ação não pode ser desfeita.
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setIsDeleteModalOpen(false)}
+                  className="flex-1 py-4 font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-2xl transition-all"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  onClick={confirmDelete}
+                  className="flex-1 py-4 font-bold text-white bg-red-600 hover:bg-red-700 rounded-2xl transition-all shadow-xl shadow-red-200"
+                >
+                  Excluir
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

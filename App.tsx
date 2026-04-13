@@ -639,6 +639,47 @@ const App: React.FC = () => {
     }
   };
 
+  const handleUpdateClient = async (updatedClient: Client) => {
+    const clientWithAudit = {
+      ...updatedClient,
+      updatedBy: currentUser?.name || 'Sistema',
+      updatedAt: new Date().toISOString()
+    };
+    setClients(prev => prev.map(c => c.id === updatedClient.id ? clientWithAudit : c));
+    try {
+      setIsSyncing(true);
+      await dataService.saveClient(clientWithAudit);
+      logActivity(ActivityType.UPDATE, `Cliente ${updatedClient.name} atualizado`, `NIF: ${updatedClient.nif}`, updatedClient.id, 'Client');
+      setNotification({ type: 'success', message: 'Cliente atualizado com sucesso.' });
+    } catch (error) {
+      setNotification({ type: 'error', message: 'Erro ao atualizar cliente.' });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleDeleteClient = async (clientId: string) => {
+    if (currentUser?.role !== UserRole.ADMIN) {
+      setNotification({ type: 'error', message: 'Apenas administradores podem excluir clientes.' });
+      return;
+    }
+    const clientToDelete = clients.find(c => c.id === clientId);
+    setClients(prev => prev.filter(c => c.id !== clientId));
+    
+    try {
+      setIsSyncing(true);
+      await dataService.deleteClient(clientId);
+      if (clientToDelete) {
+        logActivity(ActivityType.DELETE, `Cliente ${clientToDelete.name} excluído`, `NIF: ${clientToDelete.nif}`, clientId, 'Client');
+      }
+      setNotification({ type: 'success', message: 'Cliente removido com sucesso.' });
+    } catch (error) {
+      setNotification({ type: 'error', message: 'Erro ao excluir cliente.' });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   const handleAddUser = (newUser: User) => {
     setUsers(prev => [...prev, newUser]);
     dataService.saveUser(newUser).catch(console.error);
@@ -960,6 +1001,8 @@ const App: React.FC = () => {
             clients={clients} 
             currentUser={currentUser}
             onAddClient={handleAddClient} 
+            onUpdateClient={handleUpdateClient}
+            onDeleteClient={handleDeleteClient}
           />
         );
       case 'users':
