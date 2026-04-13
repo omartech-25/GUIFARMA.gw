@@ -203,6 +203,10 @@ export const dataService = {
     if (error) throw error;
   },
 
+  async clearJournalEntries() {
+    const { error } = await supabase.from('journal_entries').delete().neq('id', '0');
+    if (error) throw error;
+  },
   // Activity Logs
   async getActivityLogs(): Promise<ActivityLog[]> {
     const { data, error } = await supabase.from('activity_logs').select('*').order('timestamp', { ascending: false });

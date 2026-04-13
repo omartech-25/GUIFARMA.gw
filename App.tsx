@@ -770,6 +770,24 @@ const App: React.FC = () => {
     dataService.deleteJournalEntry(id).catch(console.error);
   };
 
+  const handleClearJournalEntries = async () => {
+    if (currentUser?.role !== UserRole.ADMIN) {
+      setNotification({ type: 'error', message: 'Apenas administradores podem limpar o diário.' });
+      return;
+    }
+    try {
+      setIsSyncing(true);
+      await dataService.clearJournalEntries();
+      setJournalEntries([]);
+      logActivity(ActivityType.DELETE, `Diário Contabilístico limpo`, `Todos os lançamentos foram removidos`, currentUser?.id, 'System');
+      setNotification({ type: 'success', message: 'Diário limpo com sucesso.' });
+    } catch (error) {
+      setNotification({ type: 'error', message: 'Erro ao limpar diário.' });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   const handleOpenCashSession = (openingBalance: number) => {
     const newSession: CashSession = {
       id: `cs-${Date.now()}`,
@@ -1035,6 +1053,7 @@ const App: React.FC = () => {
             onAddJournalEntry={handleAddJournalEntry}
             onUpdateJournalEntry={handleUpdateJournalEntry}
             onDeleteJournalEntry={handleDeleteJournalEntry}
+            onClearJournalEntries={handleClearJournalEntries}
           />
         );
       case 'cash':

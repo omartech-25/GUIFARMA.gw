@@ -44,6 +44,7 @@ interface AccountingProps {
   onAddJournalEntry: (entry: JournalEntry) => void;
   onUpdateJournalEntry: (entry: JournalEntry) => void;
   onDeleteJournalEntry: (id: string) => void;
+  onClearJournalEntries?: () => void;
 }
 
 const Accounting: React.FC<AccountingProps> = ({ 
@@ -54,10 +55,12 @@ const Accounting: React.FC<AccountingProps> = ({
   currentUser,
   onAddJournalEntry,
   onUpdateJournalEntry,
-  onDeleteJournalEntry
+  onDeleteJournalEntry,
+  onClearJournalEntries
 }) => {
   const [activeTab, setActiveTab] = useState<'journal' | 'chart' | 'tax' | 'balance' | 'cost_center' | 'regulatory' | 'expenses'>('journal');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [entryToDelete, setEntryToDelete] = useState<JournalEntry | null>(null);
@@ -252,6 +255,15 @@ const Accounting: React.FC<AccountingProps> = ({
           <p className="text-slate-500 font-medium">Gestão financeira rigorosa e conformidade fiscal.</p>
         </div>
         <div className="flex gap-3">
+          {currentUser?.role === UserRole.ADMIN && (
+            <button 
+              onClick={() => setIsClearConfirmOpen(true)}
+              className="flex items-center gap-2 bg-red-50 text-red-600 border border-red-100 px-4 py-2 rounded-xl hover:bg-red-100 transition-all text-sm font-bold shadow-sm"
+            >
+              <Trash2 size={18} />
+              Limpar Diário
+            </button>
+          )}
           <button className="flex items-center gap-2 bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-xl hover:bg-slate-50 transition-all text-sm font-bold shadow-sm">
             <Download size={18} />
             Exportar FEC
@@ -732,15 +744,143 @@ const Accounting: React.FC<AccountingProps> = ({
         )}
 
         {activeTab === 'balance' && (
-          <div className="p-12 text-center space-y-4 animate-fadeIn">
-            <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto text-slate-300">
-              <PieChart size={40} />
+          <div className="p-8 animate-fadeIn space-y-8">
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="font-bold text-slate-800">Balancete de Verificação (Provisório)</h3>
+                <p className="text-xs text-slate-400">Resumo de saldos por conta OHADA até à data atual.</p>
+              </div>
+              <button 
+                onClick={() => {
+                  const printWindow = window.open('', '_blank');
+                  if (!printWindow) return;
+                  
+                  const trialBalance = Object.values(journalEntries.reduce((acc: any, entry) => {
+                    if (!acc[entry.accountCode]) {
+                      acc[entry.accountCode] = { 
+                        code: entry.accountCode, 
+                        name: entry.accountName, 
+                        debit: 0, 
+                        credit: 0 
+                      };
+                    }
+                    acc[entry.accountCode].debit += entry.debit;
+                    acc[entry.accountCode].credit += entry.credit;
+                    return acc;
+                  }, {}));
+
+                  const html = `
+                    <html>
+                      <head>
+                        <title>Balancete Provisório - GUIFARMA SA</title>
+                        <style>
+                          body { font-family: sans-serif; padding: 40px; color: #1e293b; }
+                          .header { text-align: center; margin-bottom: 40px; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; }
+                          h1 { margin: 0; font-size: 24px; text-transform: uppercase; }
+                          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                          th { background: #f8fafc; text-align: left; padding: 12px; border: 1px solid #e2e8f0; font-size: 10px; text-transform: uppercase; }
+                          td { padding: 12px; border: 1px solid #e2e8f0; font-size: 12px; }
+                          .text-right { text-align: right; }
+                          .font-bold { font-weight: bold; }
+                          .footer { margin-top: 40px; font-size: 10px; color: #94a3b8; text-align: center; }
+                        </style>
+                      </head>
+                      <body>
+                        <div class="header">
+                          <h1>GUIFARMA SA</h1>
+                          <p>Balancete de Verificação Provisório</p>
+                          <p>Data: ${new Date().toLocaleDateString('pt')}</p>
+                        </div>
+                        <table>
+                          <thead>
+                            <tr>
+                              <th>Conta</th>
+                              <th>Descrição</th>
+                              <th class="text-right">Débito</th>
+                              <th class="text-right">Crédito</th>
+                              <th class="text-right">Saldo Devedor</th>
+                              <th class="text-right">Saldo Credor</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            ${trialBalance.map((acc: any) => {
+                              const balance = acc.debit - acc.credit;
+                              return `
+                                <tr>
+                                  <td class="font-bold">${acc.code}</td>
+                                  <td>${acc.name}</td>
+                                  <td class="text-right">${formatCurrency(acc.debit)}</td>
+                                  <td class="text-right">${formatCurrency(acc.credit)}</td>
+                                  <td class="text-right font-bold text-emerald-600">${balance > 0 ? formatCurrency(balance) : '-'}</td>
+                                  <td class="text-right font-bold text-red-600">${balance < 0 ? formatCurrency(Math.abs(balance)) : '-'}</td>
+                                </tr>
+                              `;
+                            }).join('')}
+                          </tbody>
+                        </table>
+                        <div class="footer">Documento gerado automaticamente pelo sistema MedStock Pro.</div>
+                        <script>window.print();</script>
+                      </body>
+                    </html>
+                  `;
+                  printWindow.document.write(html);
+                  printWindow.document.close();
+                }}
+                className="bg-slate-900 text-white px-6 py-3 rounded-2xl font-bold hover:bg-slate-800 transition-all shadow-lg flex items-center gap-2"
+              >
+                <Printer size={18} />
+                Imprimir Balancete
+              </button>
             </div>
-            <h3 className="text-xl font-bold text-slate-800">Balanço Patrimonial OHADA</h3>
-            <p className="text-slate-500 max-w-md mx-auto">O balanço completo requer o fecho do exercício. Pode visualizar o balancete provisório exportando o ficheiro FEC.</p>
-            <button className="bg-slate-900 text-white px-8 py-3 rounded-2xl font-bold hover:bg-slate-800 transition-all shadow-lg">
-              Gerar Balancete Provisório
-            </button>
+
+            <div className="overflow-x-auto border border-slate-100 rounded-3xl">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-slate-50 text-slate-400 font-bold uppercase text-[10px]">
+                  <tr>
+                    <th className="px-8 py-4">Conta</th>
+                    <th className="px-8 py-4">Descrição</th>
+                    <th className="px-8 py-4 text-right">Débito</th>
+                    <th className="px-8 py-4 text-right">Crédito</th>
+                    <th className="px-8 py-4 text-right">Saldo</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {Object.values(journalEntries.reduce((acc: any, entry) => {
+                    if (!acc[entry.accountCode]) {
+                      acc[entry.accountCode] = { 
+                        code: entry.accountCode, 
+                        name: entry.accountName, 
+                        debit: 0, 
+                        credit: 0 
+                      };
+                    }
+                    acc[entry.accountCode].debit += entry.debit;
+                    acc[entry.accountCode].credit += entry.credit;
+                    return acc;
+                  }, {})).map((acc: any) => {
+                    const balance = acc.debit - acc.credit;
+                    return (
+                      <tr key={acc.code} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="px-8 py-4 font-mono font-bold text-blue-600">{acc.code}</td>
+                        <td className="px-8 py-4 font-bold text-slate-700">{acc.name}</td>
+                        <td className="px-8 py-4 text-right text-emerald-600 font-medium">{formatCurrency(acc.debit)}</td>
+                        <td className="px-8 py-4 text-right text-red-600 font-medium">{formatCurrency(acc.credit)}</td>
+                        <td className={`px-8 py-4 text-right font-black ${balance >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
+                          {formatCurrency(balance)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {journalEntries.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="px-8 py-12 text-center text-slate-400 italic">
+                        Nenhum lançamento contabilístico para gerar o balancete.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>
@@ -901,6 +1041,43 @@ const Accounting: React.FC<AccountingProps> = ({
               >
                 Cancelar
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Clear Confirmation Modal */}
+      {isClearConfirmOpen && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-fadeIn">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-slideUp">
+            <div className="p-8 text-center space-y-6">
+              <div className="bg-red-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto text-red-600">
+                <AlertTriangle size={40} />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-xl font-black text-slate-900 uppercase">Limpar Diário Geral</h3>
+                <p className="text-slate-500">
+                  Tem certeza que deseja remover <span className="font-bold text-red-600">TODOS</span> os lançamentos contabilísticos? 
+                  Esta ação é irreversível e afetará os relatórios financeiros.
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setIsClearConfirmOpen(false)}
+                  className="flex-1 py-4 font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-2xl transition-all"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  onClick={() => {
+                    onClearJournalEntries?.();
+                    setIsClearConfirmOpen(false);
+                  }}
+                  className="flex-1 py-4 font-bold text-white bg-red-600 hover:bg-red-700 rounded-2xl transition-all shadow-xl shadow-red-200"
+                >
+                  Confirmar Limpeza
+                </button>
+              </div>
             </div>
           </div>
         </div>
