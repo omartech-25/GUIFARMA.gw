@@ -223,7 +223,9 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
         scale: 2,
         useCORS: true,
         logging: false,
-        backgroundColor: '#ffffff'
+        backgroundColor: '#ffffff',
+        windowWidth: element.scrollWidth,
+        windowHeight: element.scrollHeight
       });
       
       const imgData = canvas.toDataURL('image/png');
@@ -236,8 +238,23 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
       const imgProps = pdf.getImageProperties(imgData);
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      
+      let heightLeft = pdfHeight;
+      let position = 0;
 
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      // First page
+      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+      heightLeft -= pageHeight;
+
+      // Additional pages if needed
+      while (heightLeft > 0) {
+        position = heightLeft - pdfHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+        heightLeft -= pageHeight;
+      }
+
       pdf.save(`Fatura_${viewingSale.invoiceNumber}.pdf`);
     } catch (error) {
       console.error('Erro ao gerar PDF:', error);
@@ -1599,8 +1616,41 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
             className="bg-white w-full max-w-5xl max-h-[95vh] overflow-y-auto rounded-3xl shadow-2xl flex flex-col relative invoice-modal-content"
           >
             {/* Invoice Content (Matches Image) */}
-            <div className="p-12 bg-white text-black font-sans print:p-4 invoice-wrapper">
-              <div ref={invoiceRef} className="max-w-[800px] mx-auto p-8 invoice-print">
+            <div className="p-12 bg-white text-black font-sans print:p-0 invoice-wrapper">
+              <style>
+                {`
+                  @media print {
+                    @page {
+                      margin: 10mm;
+                      size: auto;
+                    }
+                    body {
+                      background: white !important;
+                    }
+                    .invoice-wrapper {
+                      padding: 0 !important;
+                      margin: 0 !important;
+                      box-shadow: none !important;
+                    }
+                    .invoice-print {
+                      width: 100% !important;
+                      max-width: none !important;
+                      padding: 0 !important;
+                      margin: 0 !important;
+                    }
+                    tr {
+                      page-break-inside: avoid !important;
+                    }
+                    .invoice-footer {
+                      page-break-inside: avoid !important;
+                    }
+                    .no-print {
+                      display: none !important;
+                    }
+                  }
+                `}
+              </style>
+              <div ref={invoiceRef} className="max-w-[800px] mx-auto p-8 invoice-print bg-white">
                 {/* Header */}
                 <div className="flex justify-between items-start mb-12">
                   <div className="flex flex-col items-center">
