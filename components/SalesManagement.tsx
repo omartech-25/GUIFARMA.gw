@@ -91,12 +91,26 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
     }
   }, [errorToast]);
 
-  // Auto-focus barcode input when PDV opens
+  // Auto-focus barcode input and initialize invoice number when PDV opens
   useEffect(() => {
-    if (isPDVOpen && barcodeInputRef.current) {
-      barcodeInputRef.current.focus();
+    if (isPDVOpen) {
+      if (barcodeInputRef.current) {
+        barcodeInputRef.current.focus();
+      }
+      
+      // Calculate next invoice number
+      const numbers = sales.map(s => {
+        const match = s.invoiceNumber.match(/GF-(\d+)-\d+/);
+        return match ? parseInt(match[1]) : 0;
+      });
+      const maxNumber = Math.max(...numbers, 0);
+      // If no sales yet, start from 0001 or a reasonable default
+      const nextVal = maxNumber === 0 ? '0001' : (maxNumber + 1).toString().padStart(4, '0');
+      
+      setManualInvoiceNumber(nextVal);
+      setManualInvoiceYear(new Date().getFullYear().toString());
     }
-  }, [isPDVOpen]);
+  }, [isPDVOpen, sales.length]);
 
   const handleBarcodeSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -466,7 +480,15 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
       id: `s-${Date.now()}`,
       invoiceNumber: manualInvoiceNumber 
         ? `GF-${manualInvoiceNumber.padStart(4, '0')}-${manualInvoiceYear || now.getFullYear()}`
-        : `GF-${(sales.length + 100).toString().padStart(4, '0')}-${now.getFullYear()}`,
+        : (() => {
+            const numbers = sales.map(s => {
+              const match = s.invoiceNumber.match(/GF-(\d+)-\d+/);
+              return match ? parseInt(match[1]) : 0;
+            });
+            const maxNumber = Math.max(...numbers, 0);
+            const nextNum = (maxNumber + 1).toString().padStart(4, '0');
+            return `GF-${nextNum}-${now.getFullYear()}`;
+          })(),
       date: now.toISOString(),
       dueDate: dueDate.toISOString(),
       clientId: selectedClientId,
