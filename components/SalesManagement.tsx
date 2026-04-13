@@ -292,6 +292,101 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
     }
   };
 
+  const addSmartToCart = (product: Product, requestedQuantity: number) => {
+    let remaining = requestedQuantity;
+    const availableBatches = [...product.batches]
+      .filter(b => b.quantity > 0 && new Date(b.expiryDate) > new Date())
+      .sort((a, b) => new Date(a.expiryDate).getTime() - new Date(b.expiryDate).getTime());
+
+    if (availableBatches.length === 0) {
+      setErrorToast({ show: true, message: 'Produto sem estoque disponível ou vencido' });
+      return;
+    }
+
+    // Calculate how much is already in cart for each batch
+    const cartQuantities: Record<string, number> = {};
+    cart.forEach(item => {
+      if (item.productId === product.id) {
+        cartQuantities[item.batchId] = (cartQuantities[item.batchId] || 0) + item.quantity;
+      }
+    });
+
+    const totalAvailableToTake = availableBatches.reduce((sum, b) => {
+      const inCart = cartQuantities[b.id] || 0;
+      return sum + (b.quantity - inCart);
+    }, 0);
+
+    if (requestedQuantity > totalAvailableToTake) {
+      setErrorToast({ show: true, message: `Quantidade excede o estoque disponível restante (${totalAvailableToTake} un)` });
+      return;
+    }
+
+    const newCart = [...cart];
+
+    for (const batch of availableBatches) {
+      if (remaining <= 0) break;
+
+      const inCart = cartQuantities[batch.id] || 0;
+      const canTake = batch.quantity - inCart;
+
+      if (canTake <= 0) continue;
+
+      const take = Math.min(remaining, canTake);
+      
+      const existingIndex = newCart.findIndex(i => i.productId === product.id && i.batchId === batch.id);
+      if (existingIndex > -1) {
+        const existing = newCart[existingIndex];
+        const newQty = existing.quantity + take;
+        newCart[existingIndex] = { ...existing, quantity: newQty, total: Math.round(newQty * existing.unitPrice) };
+      } else {
+        newCart.push({
+          productId: product.id,
+          productCode: product.code,
+          productName: product.name,
+          batchId: batch.id,
+          batchNumber: batch.batchNumber,
+          expiryDate: batch.expiryDate,
+          quantity: take,
+          unitPrice: product.sellingPriceWholesale,
+          total: Math.round(product.sellingPriceWholesale * take)
+        });
+      }
+      remaining -= take;
+    }
+
+    setCart(newCart);
+  };
+
+  const addNextBatchToCart = (productId: string) => {
+    const product = products.find(p => p.id === productId);
+    if (!product) return;
+
+    const availableBatches = [...product.batches]
+      .filter(b => b.quantity > 0 && new Date(b.expiryDate) > new Date())
+      .sort((a, b) => new Date(a.expiryDate).getTime() - new Date(b.expiryDate).getTime());
+
+    // Find batches not in cart yet
+    const batchesInCart = cart.filter(i => i.productId === productId).map(i => i.batchId);
+    const nextBatch = availableBatches.find(b => !batchesInCart.includes(b.id));
+
+    if (nextBatch) {
+      // Add 1 unit of the next batch
+      setCart([...cart, {
+        productId: product.id,
+        productCode: product.code,
+        productName: product.name,
+        batchId: nextBatch.id,
+        batchNumber: nextBatch.batchNumber,
+        expiryDate: nextBatch.expiryDate,
+        quantity: 1,
+        unitPrice: product.sellingPriceWholesale,
+        total: Math.round(product.sellingPriceWholesale)
+      }]);
+    } else {
+      setErrorToast({ show: true, message: 'Não há outros lotes disponíveis para este produto' });
+    }
+  };
+
   const removeFromCart = (index: number) => {
     setCart(cart.filter((_, i) => i !== index));
   };
@@ -992,15 +1087,8 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
                               <button 
                                 onClick={() => {
                                   const qty = productQuantities[product.id] || 1;
-                                  const firstBatch = product.batches
-                                    .filter(b => b.quantity > 0 && new Date(b.expiryDate) > new Date())
-                                    .sort((a, b) => new Date(a.expiryDate).getTime() - new Date(b.expiryDate).getTime())[0];
-                                  if (firstBatch) {
-                                    addToCart(product, firstBatch, qty);
-                                    setProductQuantities(prev => ({ ...prev, [product.id]: 1 }));
-                                  } else {
-                                    setErrorToast({ show: true, message: 'Produto sem estoque disponível ou vencido' });
-                                  }
+                                  addSmartToCart(product, qty);
+                                  setProductQuantities(prev => ({ ...prev, [product.id]: 1 }));
                                 }}
                                 className="w-10 h-10 bg-emerald-600 text-white rounded-xl flex items-center justify-center shadow-lg shadow-emerald-200 hover:bg-emerald-700 transition-all"
                               >
@@ -1064,38 +1152,24 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
                                   if (e.key === 'Enter' || e.key === '+' || e.key === 'Add') {
                                     e.preventDefault();
                                     const qty = productQuantities[product.id] || 1;
-                                    const firstBatch = product.batches
-                                      .filter(b => b.quantity > 0 && new Date(b.expiryDate) > new Date())
-                                      .sort((a, b) => new Date(a.expiryDate).getTime() - new Date(b.expiryDate).getTime())[0];
-                                    if (firstBatch) {
-                                      addToCart(product, firstBatch, qty);
-                                      setProductQuantities(prev => ({ ...prev, [product.id]: 1 }));
-                                    } else {
-                                      setErrorToast({ show: true, message: 'Produto sem estoque disponível ou vencido' });
-                                    }
+                                    addSmartToCart(product, qty);
+                                    setProductQuantities(prev => ({ ...prev, [product.id]: 1 }));
                                   }
                                 }}
                                 onClick={(e) => e.stopPropagation()}
                               />
                             </div>
                             
-                            {/* Circular Add Button - Adds the first available batch (FEFO) */}
+                            {/* Circular Add Button - Smart Batch Selection (FEFO) */}
                             <button 
                               onClick={() => {
                                 const qty = productQuantities[product.id] || 1;
-                                const firstBatch = product.batches
-                                  .filter(b => b.quantity > 0 && new Date(b.expiryDate) > new Date())
-                                  .sort((a, b) => new Date(a.expiryDate).getTime() - new Date(b.expiryDate).getTime())[0];
-                                if (firstBatch) {
-                                  addToCart(product, firstBatch, qty);
-                                  // Reset quantity after adding
-                                  setProductQuantities(prev => ({ ...prev, [product.id]: 1 }));
-                                } else {
-                                  setErrorToast({ show: true, message: 'Produto sem estoque disponível ou vencido' });
-                                }
+                                addSmartToCart(product, qty);
+                                // Reset quantity after adding
+                                setProductQuantities(prev => ({ ...prev, [product.id]: 1 }));
                               }}
                               className="w-14 h-14 bg-emerald-600 text-white rounded-full flex items-center justify-center shadow-lg shadow-emerald-200 hover:bg-emerald-700 hover:scale-110 transition-all"
-                              title="Adicionar Lote FEFO"
+                              title="Adicionar (FEFO Inteligente)"
                             >
                               <Plus size={28} strokeWidth={3} />
                             </button>
@@ -1397,6 +1471,13 @@ const SalesManagement: React.FC<SalesManagementProps> = ({
                             <div className="flex items-center gap-2 mt-1">
                               <p className="text-[10px] text-slate-400 font-black uppercase tracking-tighter">Lote: {item.batchNumber}</p>
                               <span className="text-[8px] bg-white border border-slate-200 text-slate-500 px-1.5 py-0.5 rounded font-black">Margem: {margin.toFixed(1)}%</span>
+                              <button 
+                                onClick={() => addNextBatchToCart(item.productId)}
+                                className="text-[8px] bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded font-black hover:bg-emerald-100 transition-all uppercase"
+                                title="Adicionar próximo lote disponível deste produto"
+                              >
+                                + Próximo Lote
+                              </button>
                             </div>
                           </div>
                           <button onClick={() => removeFromCart(idx)} className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all">

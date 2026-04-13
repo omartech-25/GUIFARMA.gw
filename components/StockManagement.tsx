@@ -223,6 +223,13 @@ const StockManagement: React.FC<StockManagementProps> = ({
     };
 
     if (selectedProduct) {
+      // Check if the new code is already used by another product
+      const codeExists = products.some(p => p.id !== selectedProduct.id && p.code.toLowerCase() === formData.code.toLowerCase());
+      if (codeExists) {
+        setSuccessToast({ show: true, message: 'Erro: Este código já está sendo usado por outro produto!' });
+        return;
+      }
+
       let updatedPriceHistory = selectedProduct.priceHistory || [];
       
       // Check for selling price change
@@ -302,10 +309,46 @@ const StockManagement: React.FC<StockManagementProps> = ({
       setSuccessToast({ show: true, message: 'Produto atualizado com sucesso!' });
     } else {
       // Check for duplicate code
-      const codeExists = products.some(p => p.code.toLowerCase() === formData.code.toLowerCase());
-      if (codeExists) {
-        setSuccessToast({ show: true, message: 'Erro: Já existe um produto com este código!' });
-        return;
+      const existingProduct = products.find(p => p.code.toLowerCase() === formData.code.toLowerCase());
+      if (existingProduct) {
+        // Se o produto já existe, vamos atualizar ele adicionando o novo lote se fornecido
+        if (formData.batch && parseInt(formData.stock) > 0) {
+          const newBatch: Batch = {
+            id: `b-${Date.now()}`,
+            batchNumber: formData.batch,
+            manufacturerBatchNumber: formData.batch,
+            manufacturingDate: new Date().toISOString().split('T')[0],
+            expiryDate: formData.expiryDate || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            quantity: parseInt(formData.stock) || 0,
+            purchasePrice: parseFloat(formData.cost) || 0,
+            location: formData.location,
+            isColdChain: false
+          };
+
+          const updatedPriceHistory = addPriceHistory(
+            existingProduct, 
+            'Compra', 
+            existingProduct.batches[0]?.purchasePrice || 0, 
+            parseFloat(formData.cost) || 0
+          );
+
+          const updatedProduct = {
+            ...existingProduct,
+            ...productData,
+            batches: [...existingProduct.batches, newBatch],
+            priceHistory: updatedPriceHistory
+          } as Product;
+
+          onUpdateProduct?.(updatedProduct);
+          setSelectedProduct(updatedProduct);
+          setSuccessToast({ show: true, message: 'Produto já existente. Novo lote adicionado com sucesso!' });
+          return;
+        } else {
+          // Se não informou lote, apenas seleciona o produto existente para edição
+          setSelectedProduct(existingProduct);
+          setSuccessToast({ show: true, message: 'Produto já cadastrado. Selecionado para edição.' });
+          return;
+        }
       }
 
       const newProduct: Product = {
