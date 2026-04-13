@@ -3,7 +3,7 @@ import React, { useState, useRef } from 'react';
 import { BarChart3, Calendar, AlertTriangle, TrendingUp, MapPin, Download, DollarSign, Package, CheckCircle2, List, Users } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
-import { Product, Sale, Client, MedicineCategory, User } from '../types';
+import { Product, Sale, Client, MedicineCategory, User, UserRole } from '../types';
 import { formatCurrency } from '@/constants';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend } from 'recharts';
 
@@ -102,18 +102,37 @@ const Reports: React.FC<ReportsProps> = ({ products = [], sales = [], clients = 
   .filter(p => lowStockCategory === 'all' || p.category === lowStockCategory)
   .sort((a, b) => a.criticalLevel - b.criticalLevel);
 
-  // 5. Desempenho por Usuário
+  // 5. Desempenho por Usuário (Vendedores)
   const salesByUser = users.map(user => {
     const userSales = sales.filter(s => s.sellerId === user.id);
     const totalAmount = userSales.reduce((sum, s) => sum + (s.total || 0), 0);
     const salesCount = userSales.length;
+    
+    // Cálculo de Lucro e Margem
+    let totalCost = 0;
+    userSales.forEach(sale => {
+      sale.items.forEach(item => {
+        const product = products.find(p => p.id === item.productId);
+        const batch = product?.batches.find(b => b.id === item.batchId);
+        if (batch) {
+          totalCost += item.quantity * (batch.purchasePrice || 0);
+        }
+      });
+    });
+
+    const totalTaxableBase = userSales.reduce((sum, s) => sum + (s.taxableBase || 0), 0);
+    const profit = totalTaxableBase - totalCost;
+    const margin = totalTaxableBase > 0 ? (profit / totalTaxableBase) * 100 : 0;
+
     return { 
       name: user.employeeName || user.name, 
       totalAmount, 
       salesCount,
-      role: user.role
+      role: user.role,
+      profit,
+      margin
     };
-  }).filter(u => u.salesCount > 0 || u.role === 'Vendedor' || u.role === 'Administrador')
+  }).filter(u => u.salesCount > 0 || u.role === UserRole.SELLER || u.role === UserRole.ADMIN)
     .sort((a, b) => b.totalAmount - a.totalAmount);
 
   const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
@@ -433,7 +452,7 @@ const Reports: React.FC<ReportsProps> = ({ products = [], sales = [], clients = 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
               <div className="p-6 border-b border-slate-50 flex justify-between items-center">
-                <h3 className="font-bold text-slate-800">Ranking de Vendas por Usuário</h3>
+                <h3 className="font-bold text-slate-800">Desempenho de Vendas por Vendedor</h3>
                 <span className="bg-emerald-100 text-emerald-600 px-3 py-1 rounded-full text-[10px] font-black uppercase">Performance</span>
               </div>
               <div className="overflow-x-auto">
@@ -441,9 +460,9 @@ const Reports: React.FC<ReportsProps> = ({ products = [], sales = [], clients = 
                   <thead className="bg-slate-50 text-slate-400 font-bold uppercase text-[10px]">
                     <tr>
                       <th className="px-6 py-4">Vendedor</th>
-                      <th className="px-6 py-4">Cargo</th>
-                      <th className="px-6 py-4 text-center">Qtd. Vendas</th>
-                      <th className="px-6 py-4 text-right">Total Acumulado</th>
+                      <th className="px-6 py-4 text-center">Transações</th>
+                      <th className="px-6 py-4 text-right">Total (FCFA)</th>
+                      <th className="px-6 py-4 text-right">Margem Lucro</th>
                       <th className="px-6 py-4 text-right">% do Total</th>
                     </tr>
                   </thead>
@@ -461,12 +480,19 @@ const Reports: React.FC<ReportsProps> = ({ products = [], sales = [], clients = 
                               }`}>
                                 {idx + 1}
                               </div>
-                              <span className="font-bold text-slate-800">{user.name}</span>
+                              <div>
+                                <p className="font-bold text-slate-800">{user.name}</p>
+                                <p className="text-[10px] text-slate-400 uppercase">{user.role}</p>
+                              </div>
                             </div>
                           </td>
-                          <td className="px-6 py-4 text-slate-500 text-xs">{user.role}</td>
                           <td className="px-6 py-4 text-center font-medium">{user.salesCount}</td>
                           <td className="px-6 py-4 text-right font-black text-slate-900">{formatCurrency(user.totalAmount)}</td>
+                          <td className="px-6 py-4 text-right">
+                            <span className={`font-bold ${user.margin > 20 ? 'text-emerald-600' : user.margin > 10 ? 'text-amber-600' : 'text-red-600'}`}>
+                              {user.margin.toFixed(1)}%
+                            </span>
+                          </td>
                           <td className="px-6 py-4 text-right">
                             <div className="flex items-center justify-end gap-2">
                               <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
@@ -507,10 +533,16 @@ const Reports: React.FC<ReportsProps> = ({ products = [], sales = [], clients = 
                     {salesByUser.reduce((sum, u) => sum + u.salesCount, 0)}
                   </span>
                 </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-slate-500">Margem Média</span>
+                  <span className="font-bold text-emerald-600">
+                    {(salesByUser.reduce((sum, u) => sum + u.margin, 0) / (salesByUser.length || 1)).toFixed(1)}%
+                  </span>
+                </div>
               </div>
               
               <div className="pt-6 border-t border-slate-100">
-                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Distribuição de Volume</h4>
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Volume de Vendas (Pizza)</h4>
                 <div className="h-[200px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -529,6 +561,7 @@ const Reports: React.FC<ReportsProps> = ({ products = [], sales = [], clients = 
                         ))}
                       </Pie>
                       <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                      <Legend iconType="circle" wrapperStyle={{ fontSize: '10px' }} />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
@@ -537,20 +570,22 @@ const Reports: React.FC<ReportsProps> = ({ products = [], sales = [], clients = 
           </div>
 
           <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
-            <h3 className="font-bold text-slate-800 mb-8">Comparativo de Vendas (Valor vs Quantidade)</h3>
+            <h3 className="font-bold text-slate-800 mb-8">Desempenho por Vendedor (Total em FCFA)</h3>
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={salesByUser}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10}} />
-                  <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10}} />
-                  <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10}} />
+                  <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 10}} />
                   <Tooltip 
                     contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'}}
+                    formatter={(value: number) => [formatCurrency(value), 'Total Vendas']}
                   />
-                  <Legend />
-                  <Bar yAxisId="left" dataKey="totalAmount" name="Valor Total" fill="#10b981" radius={[4, 4, 0, 0]} />
-                  <Bar yAxisId="right" dataKey="salesCount" name="Qtd. Vendas" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="totalAmount" fill="#10b981" radius={[8, 8, 0, 0]}>
+                    {salesByUser.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
